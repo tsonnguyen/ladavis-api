@@ -83,11 +83,8 @@ function getPatient(req, res, next) {
 		var listNoteItems = data[3];
 
 		var result = {
-			NBP: {
-				time: [],
-				systolic: [],
-				diastolic: []
-			},
+			systolic: [],
+			diastolic: [],
 			hemoA1c: [],
 			glucoseBlood: [],
 			glucoseUrine: [],
@@ -108,10 +105,15 @@ function getPatient(req, res, next) {
 
 		for (var i in listItems){
 			if (listItems[i].itemid == constant.NBPsystolic) {
-				result.NBP.time.push(listItems[i].time);
-				result.NBP.systolic.push(listItems[i].value);
+				result.systolic.push({
+					time: listItems[i].time, 
+					value: listItems[i].value
+				});
 			} else if (listItems[i].itemid == constant.NBPdiastolic) {
-				result.NBP.diastolic.push(listItems[i].value);
+				result.diastolic.push({
+					time: listItems[i].time, 
+					value: listItems[i].value
+				});
 			}
 		}   
 
