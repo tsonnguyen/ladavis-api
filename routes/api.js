@@ -74,15 +74,57 @@ function getPatient(req, res, next) {
 				+ 'from noteevents '
 				+ 'where subject_id = $1 '
 				+ 'order by chartdate asc'
-				, req.query.id)
+				, req.query.id),
+			t.any('select * ' 
+				+ 'from admissions '
+				+ 'where subject_id = $1 '
+				, req.query.id),
+			t.any('select * ' 
+				+ 'from patients '
+				+ 'where subject_id = $1 '
+				, req.query.id)		
 		]);
 	}).then(data => {
 		var listItems = data[0];
 		var listLabitems = data[1];
 		var listDrugItems = data[2];
 		var listNoteItems = data[3];
+		var listAdminssionItems = data[4];
+		var listInfoItems = data[5];
+
+		var shiftYear = 87;
+
+		function pad(d) {
+			return (d < 10) ? '0' + d.toString() : d.toString();
+		}
+
+		var formatDate = (dateString) => {
+			let data = new Date(dateString);
+			let day = pad(data.getDate());
+			let month = pad(data.getMonth() + 1);
+			let year = data.getFullYear() - shiftYear;
+			let hour = pad(data.getHours());
+			let minute = pad(data.getMinutes());
+			let second = pad(data.getSeconds());
+			return day + '/' + month + '/' + year + ' '
+							+ hour + ':' + minute + ':' + second;
+		};
+
+		String.prototype.capitalize = function() {
+			return this.charAt(0).toUpperCase() + this.slice(1);
+		};
 
 		var result = {
+			info: {
+				id: req.query.id,
+				dob: (new Date()).getFullYear() - (new Date(listInfoItems[0].dob)).getFullYear() + shiftYear,
+				gender: (listInfoItems[0].gender === 'M') ? 'Male' : 'Female',
+				admittime: formatDate(listAdminssionItems[0].admittime),
+				dischtime: formatDate(listAdminssionItems[0].dischtime),
+				deathtime: formatDate(listAdminssionItems[0].deathtime),
+				diagnosis: listAdminssionItems[0].diagnosis.toLowerCase().capitalize(),
+				religion: listAdminssionItems[0].religion.toLowerCase().capitalize(),
+			},
 			systolic: [],
 			diastolic: [],
 			hemoA1c: [],
