@@ -94,22 +94,6 @@ function getPatient(req, res, next) {
 
 		var shiftYear = 87;
 
-		function pad(d) {
-			return (d < 10) ? '0' + d.toString() : d.toString();
-		}
-
-		var formatDate = (dateString) => {
-			let data = new Date(dateString);
-			let day = pad(data.getDate());
-			let month = pad(data.getMonth() + 1);
-			let year = data.getFullYear() - shiftYear;
-			let hour = pad(data.getHours());
-			let minute = pad(data.getMinutes());
-			let second = pad(data.getSeconds());
-			return day + '/' + month + '/' + year + ' '
-							+ hour + ':' + minute + ':' + second;
-		};
-
 		String.prototype.capitalize = function() {
 			return this.charAt(0).toUpperCase() + this.slice(1);
 		};
@@ -119,9 +103,9 @@ function getPatient(req, res, next) {
 				id: req.query.id,
 				dob: (new Date()).getFullYear() - (new Date(listInfoItems[0].dob)).getFullYear() + shiftYear,
 				gender: (listInfoItems[0].gender === 'M') ? 'Male' : 'Female',
-				admittime: formatDate(listAdminssionItems[0].admittime),
-				dischtime: formatDate(listAdminssionItems[0].dischtime),
-				deathtime: formatDate(listAdminssionItems[0].deathtime),
+				admittime: (listAdminssionItems[0].admittime),
+				dischtime: (listAdminssionItems[listAdminssionItems.length-1].dischtime),
+				deathtime: (listAdminssionItems[0].deathtime),
 				diagnosis: listAdminssionItems[0].diagnosis.toLowerCase().capitalize(),
 				religion: listAdminssionItems[0].religion.toLowerCase().capitalize(),
 			},
@@ -146,6 +130,9 @@ function getPatient(req, res, next) {
 		};
 
 		for (var i in listItems){
+			if (new Date(listItems[i].time) > new Date(result.info.dischtime)) {
+				result.info.dischtime = listItems[i].time;
+			}
 			if (listItems[i].itemid == constant.NBPsystolic) {
 				result.systolic.push({
 					time: listItems[i].time, 
@@ -157,9 +144,12 @@ function getPatient(req, res, next) {
 					value: listItems[i].value
 				});
 			}
-		}   
+		}  
 
 		for (let i in listLabitems){
+			if (new Date(listLabitems[i].time) > new Date(result.info.dischtime)) {
+				result.info.dischtime = listLabitems[i].time;
+			}
 			switch (listLabitems[i].itemid) {
 			case (constant.glucoseBlood):
 				result.glucoseBlood.push({time: listLabitems[i].time, value: listLabitems[i].value});
@@ -186,6 +176,9 @@ function getPatient(req, res, next) {
 		}
 
 		for (let i in listDrugItems){
+			if (new Date(listDrugItems[i].time) > new Date(result.info.dischtime)) {
+				result.info.dischtime = listDrugItems[i].time;
+			}
 			switch (listDrugItems[i].drug) {
 			case (constant.simva):
 				result.simva.push(listDrugItems[i]);
