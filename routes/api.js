@@ -1,6 +1,9 @@
 var database = require('./dbSetting');
 var db = database.db ;
 
+var prediction = require('./prediction');
+var classifier = prediction.classifier;
+
 var constant = require('./defines.js');
 
 function getAllPatients(req, res, next) {
@@ -35,7 +38,7 @@ function getAllPatients(req, res, next) {
 				status: 1,
 				message: 'Retrieved ALL diabete patients',
 				length: listPatients.length,
-				data: listPatients
+				data: classifier.categorize(['1', '79', '75', '30', '0', '32', '0.396', '22'])
 			});
 	}).catch(error => {
 		return next(error);
