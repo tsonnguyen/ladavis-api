@@ -16,7 +16,7 @@ var crossValidation = require('ml-cross-validation');
 
 var csv = require('fast-csv');
 
-var labelMode = 'sing';
+var labelMode = 'dou';
 
 var oriData = [];
 var oriLabel = [];
@@ -136,137 +136,154 @@ csv.fromPath('data/pima-diabetes.csv')
 
 		console.log('------------------------------------');
 		//init MLP
-		var runMLP = -1;
+		var runMLP = 50;
+		var runMLPOneTime = 2;
 		var best1 = 0;
 		var best2 = 0;
 		var TP = 0, FN = 0, FP = 0, TN = 0;
-		for (var j = 0; j <= runMLP; j++) {
-			console.log('running ' + j);
+		for (var l = 0; l <= runMLP; l++) {
 			preProcess();
-			
-			var count = 0;
-			var tempTP = 0, tempFN = 0, tempFP = 0, tempTN = 0;
+			if (l % 1 === 0) console.log('running ' + l)
+			for (var j = 0; j <= runMLPOneTime; j++) {
+				var count = 0;
+				var tempTP = 0, tempFN = 0, tempFP = 0, tempTN = 0;
 
-			mlpClassifier = new ml.MLP({
-				input: dataArray.slice(0, 768 - 230),
-				label: labelArray.slice(0, 768 - 230),
-				n_ins: 8,
-				n_outs: 2,
-				hidden_layer_sizes: [4, 4, 5]
-			});
-			mlpClassifier.set('log level', 1); // 0 : nothing, 1 : info, 2 : warning.
+				mlpClassifier = new ml.MLP({
+					input: dataArray.slice(0, 768 - 230),
+					label: labelArray.slice(0, 768 - 230),
+					n_ins: 8,
+					n_outs: 2,
+					hidden_layer_sizes: [4, 4, 5]
+				});
+				mlpClassifier.set('log level', 1); // 0 : nothing, 1 : info, 2 : warning.
 
-			//traning MLP
-			mlpClassifier.train({
-				lr : 0.01,
-				epochs : 20000
-			});
-			
-			// write model
-			// fs.writeFile('/mlp', JSON.stringify(mlpClassifier), function(err) {
-			// 	if(err) {
-			// 		return console.log(err);
-			// 	}
-			// 	console.log("The file was saved!");
-			// }); 
+				//traning MLP
+				mlpClassifier.train({
+					lr : 0.01,
+					epochs : 20000
+				});
+				
+				// write model
+				// fs.writeFile('/mlp', JSON.stringify(mlpClassifier), function(err) {
+				// 	if(err) {
+				// 		return console.log(err);
+				// 	}
+				// 	console.log("The file was saved!");
+				// }); 
 
-			// read model
-			// fs.readFile('/test', 'utf8', function (err, data) {
-			// 	if (err) {
-			// 		return console.log(err);
-			// 	}
-			// 	var detector = new ml.MLP({
-			// 		'input': [[1, 0], [0, 1]],
-			// 		'label': [[0, 1], [1, 0]],
-			// 		'n_ins': 2,
-			// 		'n_outs': 2,
-			// 		'hidden_layer_sizes': [5]
-			// 	});
+				// read model
+				// fs.readFile('/test', 'utf8', function (err, data) {
+				// 	if (err) {
+				// 		return console.log(err);
+				// 	}
+				// 	var detector = new ml.MLP({
+				// 		'input': [[1, 0], [0, 1]],
+				// 		'label': [[0, 1], [1, 0]],
+				// 		'n_ins': 2,
+				// 		'n_outs': 2,
+				// 		'hidden_layer_sizes': [5]
+				// 	});
 
-			// 	data = JSON.parse(data);
-			// 	// Then overwrite all properties with what is saved in data variable    
-			// 	detector.x = data.x; // comment out if you won't train
-			// 	detector.y = data.y; // comment out if you won't train
-			// 	detector.nLayers = data.nLayers;
-			// 	detector.settings = data.settings;
-			// 	detector.sigmoidLayers = new Array(data.sigmoidLayers.length);
-			// 	for (var i in data.sigmoidLayers) {
-			// 		// Here you cannot lie, use same values than in detector.settings
-			// 		// Create a HiddenLayer use its constructor to ensure we end with the correct type
-			// 		detector.sigmoidLayers[i] = new HiddenLayer({
-			// 			'n_ins': detector.settings['n_ins'],
-			// 			'n_outs': detector.settings['n_outs']
-			// 		});
+				// 	data = JSON.parse(data);
+				// 	// Then overwrite all properties with what is saved in data variable    
+				// 	detector.x = data.x; // comment out if you won't train
+				// 	detector.y = data.y; // comment out if you won't train
+				// 	detector.nLayers = data.nLayers;
+				// 	detector.settings = data.settings;
+				// 	detector.sigmoidLayers = new Array(data.sigmoidLayers.length);
+				// 	for (var i in data.sigmoidLayers) {
+				// 		// Here you cannot lie, use same values than in detector.settings
+				// 		// Create a HiddenLayer use its constructor to ensure we end with the correct type
+				// 		detector.sigmoidLayers[i] = new HiddenLayer({
+				// 			'n_ins': detector.settings['n_ins'],
+				// 			'n_outs': detector.settings['n_outs']
+				// 		});
 
-			// 		// restore all properties of each HiddenLayer
-			// 		for (var p in data.sigmoidLayers[i]) {
-			// 			detector.sigmoidLayers[i][p] = data.sigmoidLayers[i][p];
-			// 		}
-			// 	}
-			// 	console.log(detector.predict([dataArray[2]]))
-			// 	console.log(([labelArray[2]]))
-			// });
+				// 		// restore all properties of each HiddenLayer
+				// 		for (var p in data.sigmoidLayers[i]) {
+				// 			detector.sigmoidLayers[i][p] = data.sigmoidLayers[i][p];
+				// 		}
+				// 	}
+				// 	console.log(detector.predict([dataArray[2]]))
+				// 	console.log(([labelArray[2]]))
+				// });
 
-			//console.log(JSON.stringify(mlpClassifier))
+				//console.log(JSON.stringify(mlpClassifier))
 
-			for (let i = 768 - 230; i < 768; i++) {
-				var y = mlpClassifier.predict([dataArray[i]]);
-				if (Number(labelArray[i][0]) > Number(labelArray[i][1])) {
-					if (y[0][0] > y[0][1]) {
-						count++;
-						tempTN++;
+				for (let i = 768 - 230; i < 768; i++) {
+					var y = mlpClassifier.predict([dataArray[i]]);
+					if (Number(labelArray[i][0]) > Number(labelArray[i][1])) {
+						if (y[0][0] > y[0][1]) {
+							count++;
+							tempTN++;
+						} else {
+							tempFP++;
+						}
 					} else {
-						tempFP++;
-					}
-				} else {
-					if (y[0][0] < y[0][1]) {
-						count++;
-						tempTP++;
-					} else {
-						tempFN++;
+						if (y[0][0] < y[0][1]) {
+							count++;
+							tempTP++;
+						} else {
+							tempFN++;
+						}
 					}
 				}
-			}
 
-			var print = false;
-			if (count < (230 / 2)) {
-				if ((best1 === 0 && best2 === 0) || (count < best1 && count < 230 - best2)) {
-					best1 = count;
-					best2 = 230 - count;
-					print = true;
-					TN = tempTN;
-					FN = tempFN;
-					TP = tempTP;
-					FP = tempFP;
-				}
-			} else if (count >= (230 / 2)) {
-				if ((best1 === 0 && best2 === 0) || (count > best2 && count > 230 - best1)) {
-					best2 = count;
-					best1 = 230 - count;
-					print = true;
-					TN = tempTN;
-					FN = tempFN;
-					TP = tempTP;
-					FP = tempFP;
-				}
-			}
-
-			if (print) {
-				fs.writeFile('/mlp', JSON.stringify(mlpClassifier), function(err) {
-					if(err) {
-						return console.log(err);
+				var print = false;
+				if (count < (230 / 2)) {
+					if ((best1 === 0 && best2 === 0) || (count < best1 && count < 230 - best2)) {
+						best1 = count;
+						best2 = 230 - count;
+						print = true;
+						TN = tempTN;
+						FN = tempFN;
+						TP = tempTP;
+						FP = tempFP;
+						choseData = dataArray.slice();
+						choseLabel = labelArray.slice();
 					}
-				}); 
+				} else if (count >= (230 / 2)) {
+					if ((best1 === 0 && best2 === 0) || (count > best2 && count > 230 - best1)) {
+						best2 = count;
+						best1 = 230 - count;
+						print = true;
+						TN = tempTN;
+						FN = tempFN;
+						TP = tempTP;
+						FP = tempFP;
+						choseData = dataArray.slice();
+						choseLabel = labelArray.slice();
+					}
+				}
+
+				if (print) {
+					fs.writeFile('/mlp', JSON.stringify(mlpClassifier), function(err) {
+						if(err) {
+							return console.log(err);
+						}
+					}); 
+				}
 			}
 		}
 
 		if (runMLP >=0 ) {
+			console.log('alo')
+			var confusionMatrixLeave1 = crossValidation.leaveOneOut(MyClassifier2, choseData, douToSingle(choseLabel), {model: mlpClassifier});
+			var confusionMatrixFold5 = crossValidation.kFold(MyClassifier2, choseData, douToSingle(choseLabel), {model: mlpClassifier}, 5);
+			var confusionMatrixFold10 = crossValidation.kFold(MyClassifier2, choseData, douToSingle(choseLabel), {model: mlpClassifier}, 10);
+			console.log('done')
 			console.log('TP:' + TP)
-			console.log('FN:' +  FN)
-			console.log('FP:' +  FP)
-			console.log('TN:' +  TN)
-			console.log(best2 / 230)
+			console.log('FN:' + FN)
+			console.log('FP:' + FP)
+			console.log('TN:' + TN)
+			console.log('Leave 1 out')
+			console.log(confusionMatrixLeave1.accuracy)
+			console.log('5 fold')
+			console.log(confusionMatrixFold5)
+			console.log('10 fold')
+			console.log(confusionMatrixFold10)
 			console.log(best1 / 230)
+			console.log(best2 / 230)
 		}
 	
 		//shuffle(dataArray)
@@ -274,6 +291,7 @@ csv.fromPath('data/pima-diabetes.csv')
 		// console.log(labelArray)
 		console.log('------------------------------------');
 		var runFuzzy = -1;
+		var runFuzzyOneTime = -1;
 		var best1 = 0;
 		var best2 = 0;
 		var bestAccuracy = 0;
@@ -291,84 +309,85 @@ csv.fromPath('data/pima-diabetes.csv')
 		// 	vectors[i] = dataArray[i] ;
 		// }
 
-		for (var j = 0; j <= runFuzzy; j++) {
+		for (var l = 0; l <= runFuzzy; l++) {
 			preProcess();
-			
-			if (j % 1000 === 0) console.log('running ' + j)
-						
-			var clusters = figue.fcmeans(2, dataArray.slice(768 - 230, 768), 0.00000000001, 1.25) ;
-			var count = 0;
-			var tempTP = 0, tempFN = 0, tempFP = 0, tempTN = 0;
+			if (l % 10 === 0) console.log('running ' + l)
+			for (var j = 0; j <= runFuzzyOneTime; j++) {
+					
+				var clusters = figue.fcmeans(2, dataArray.slice(768 - 230, 768), 0.00000000001, 1.25) ;
+				var count = 0;
+				var tempTP = 0, tempFN = 0, tempFP = 0, tempTN = 0;
 
-			for (let i = 768 - 230; i < 768; i++) {
-				var dis1 = figue.euclidianDistance(dataArray[i], clusters.centroids[0]);
-				var dis2 = figue.euclidianDistance(dataArray[i], clusters.centroids[1]);
-				//console.log(dis1)
-				//console.log(dis2)
-				//console.log(dis1>dis2)
-				if (Number(labelArray[i]) > 0.5) {
-					if (dis1 > dis2) {
-						count++;
-						tempTN++;
+				for (let i = 768 - 230; i < 768; i++) {
+					var dis1 = figue.euclidianDistance(dataArray[i], clusters.centroids[0]);
+					var dis2 = figue.euclidianDistance(dataArray[i], clusters.centroids[1]);
+					//console.log(dis1)
+					//console.log(dis2)
+					//console.log(dis1>dis2)
+					if (Number(labelArray[i]) > 0.5) {
+						if (dis1 > dis2) {
+							count++;
+							tempTN++;
+						} else {
+							tempFP++;
+						}
 					} else {
-						tempFP++;
-					}
-				} else {
-					if (dis1 < dis2) {
-						count++;
-						tempTP++;
-					} else {
-						tempFN++;
+						if (dis1 < dis2) {
+							count++;
+							tempTP++;
+						} else {
+							tempFN++;
+						}
 					}
 				}
-			}
 
-			// var confusionMatrix = crossValidation.leaveOneOut(MyClassifier, dataArray, labelArray);
-			// var accuracy = confusionMatrix.getAccuracy();
+				// var confusionMatrix = crossValidation.leaveOneOut(MyClassifier, dataArray, labelArray);
+				// var accuracy = confusionMatrix.getAccuracy();
 
-			var print = false;
-			if (count < (230 / 2)) {
-				if (tempTP === 0 || tempTP > tempFN) {
-					if ((best1 === 0 && best2 === 0) || (count < best1 && count < 230 - best2)) {
-						best1 = count;
-						best2 = 230 - count;
-						print = true;
-						TN = tempTN;
-						FN = tempFN;
-						TP = tempTP;
-						FP = tempFP;
-						choseData = dataArray.slice();
-						choseLabel = labelArray.slice();
-						//bestAccuracy = accuracy;
+				var print = false;
+				if (count < (230 / 2)) {
+					if (tempTP === 0 || tempTP > tempFN) {
+						if ((best1 === 0 && best2 === 0) || (count < best1 && count < 230 - best2)) {
+							best1 = count;
+							best2 = 230 - count;
+							print = true;
+							TN = tempTN;
+							FN = tempFN;
+							TP = tempTP;
+							FP = tempFP;
+							choseData = dataArray.slice();
+							choseLabel = labelArray.slice();
+							//bestAccuracy = accuracy;
+						}
+					}
+				} else if (count >= (230 / 2)) {
+					if (tempTP === 0 || tempTP > tempFN) {
+						if ((best1 === 0 && best2 === 0) || (count > best2 && count > 230 - best1)) {
+							best2 = count;
+							best1 = 230 - count;
+							print = true;
+							TN = tempTN;
+							FN = tempFN;
+							TP = tempTP;
+							FP = tempFP;
+							choseData = dataArray.slice();
+							choseLabel = labelArray.slice();
+							//bestAccuracy = accuracy;
+						}
 					}
 				}
-			} else if (count >= (230 / 2)) {
-				if (tempTP === 0 || tempTP > tempFN) {
-					if ((best1 === 0 && best2 === 0) || (count > best2 && count > 230 - best1)) {
-						best2 = count;
-						best1 = 230 - count;
-						print = true;
-						TN = tempTN;
-						FN = tempFN;
-						TP = tempTP;
-						FP = tempFP;
-						choseData = dataArray.slice();
-						choseLabel = labelArray.slice();
-						//bestAccuracy = accuracy;
-					}
-				}
-			}
 
-			if (print) {
-				finalClusters = clusters;
-				fs.writeFile('/fuzzy', JSON.stringify(clusters.centroids), function(err) {
-					if(err) {
-						return console.log(err);
-					}
-					//console.log("The file was saved!");
-				}); 
+				if (print) {
+					finalClusters = clusters;
+					fs.writeFile('/fuzzy', JSON.stringify(clusters.centroids), function(err) {
+						if(err) {
+							return console.log(err);
+						}
+						//console.log("The file was saved!");
+					}); 
+				}
+				// if (count > 134) console.log(count);
 			}
-			// if (count > 134) console.log(count);
 		}
 
 		//console.log(finalClusters.centroids)
@@ -520,6 +539,18 @@ function preProcess() {
 	// console.log(labelArray.length)
 }
 
+function douToSingle(labels) {
+	var newArray = labels.slice();
+	for (let i in newArray) {
+		if (newArray[i][0] === 1) {
+			newArray[i] = 1;
+		} else {
+			newArray[i] = 0;
+		}
+	}
+	return newArray;
+}
+
 class MyClassifier {
   constructor(options) {
     this.options = options;
@@ -539,6 +570,27 @@ class MyClassifier {
     return prediction;
   }
 }
+
+class MyClassifier2 {
+  constructor(options) {
+    this.options = options;
+  }
+  train(data, labels) {
+    this.model = this.options.model
+  }
+  predict(testData) {
+		var prediction;
+		var y = this.model.predict([testData[0]]);
+
+		if (y[0][0] > y[0][1]) {
+			prediction = [1];
+		} else {
+			prediction = [0];
+		}
+    return prediction;
+  }
+}
+
 
 module.exports = {
 	bayesClassifier: bayesClassifier
