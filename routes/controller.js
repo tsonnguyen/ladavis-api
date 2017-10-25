@@ -13,6 +13,8 @@ router.get('/', function(req, res) {
 
 	res.send('cors problem fixed:)');
 });
+
+router.get(rootPath + 'all-full-patients', api.getFullAllPatients);
 router.get(rootPath + 'all-patients', api.getAllPatients);
 router.get(rootPath + 'patient/:id?', api.getPatient);
 

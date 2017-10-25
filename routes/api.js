@@ -1,8 +1,10 @@
 var database = require('./dbSetting');
 var db = database.db ;
 
-var prediction = require('./prediction');
-var classifier = prediction.classifier;
+// var prediction = require('./prediction');
+// var test = require('./test');
+var test = require('./test2');
+// var classifier = prediction.classifier;
 
 var constant = require('./defines.js');
 
@@ -38,7 +40,7 @@ function getAllPatients(req, res, next) {
 				status: 1,
 				message: 'Retrieved ALL diabete patients',
 				length: listPatients.length,
-				data: classifier.categorize(['1', '79', '75', '30', '0', '32', '0.396', '22'])
+				data: listPatients
 			});
 	}).catch(error => {
 		return next(error);
@@ -51,9 +53,9 @@ function getPatient(req, res, next) {
 			t.any('select itemid, value, charttime as time ' 
 				+ 'from chartevents '
 				+ 'where subject_id = $1 ' 
-				+ 'and (itemid = $2 or itemid = $3) '
+				+ 'and (itemid = $2 or itemid = $3 or itemid = $4 or itemid = $5 or itemid = $6) '
 				+ 'order by charttime asc'
-				, [req.query.id, constant.NBPsystolic, constant.NBPdiastolic]),
+				, [req.query.id, constant.NBPsystolic, constant.NBPdiastolic, constant.weight, constant.height, constant.pregnant]),
 			t.any('select itemid, value, charttime as time ' 
 				+ 'from labevents '
 				+ 'where subject_id = $1 ' 
@@ -101,120 +103,264 @@ function getPatient(req, res, next) {
 			return this.charAt(0).toUpperCase() + this.slice(1);
 		};
 
-		var result = {
-			info: {
-				id: req.query.id,
-				dob: (new Date()).getFullYear() - (new Date(listInfoItems[0].dob)).getFullYear() + shiftYear,
-				gender: (listInfoItems[0].gender === 'M') ? 'Male' : 'Female',
-				admittime: (listAdminssionItems[0].admittime),
-				dischtime: (listAdminssionItems[listAdminssionItems.length-1].dischtime),
-				deathtime: (listAdminssionItems[0].deathtime),
-				diagnosis: listAdminssionItems[0].diagnosis.toLowerCase().capitalize(),
-				religion: listAdminssionItems[0].religion.toLowerCase().capitalize(),
-			},
-			systolic: [],
-			diastolic: [],
-			hemoA1c: [],
-			glucoseBlood: [],
-			glucoseUrine: [],
-			creatinine: [],
-			albumin: [],
-			choles: [],
-			trigly: [],
-			simva: [],
-			lisin: [],
-			RR: [],
-			acar: [],
-			met: [],
-			Glit: [],
-			DPP4: [],
-			SH: [],
-			notes: listNoteItems
-		};
+		if (typeof listInfoItems[0] !== 'undefined') {
+			var result = {
+				info: {
+					id: req.query.id,
+					dob: (new Date()).getFullYear() - (new Date(listInfoItems[0].dob)).getFullYear() + shiftYear,
+					gender: (listInfoItems[0].gender === 'M') ? 'Male' : 'Female',
+					admittime: (listAdminssionItems[0].admittime),
+					dischtime: (listAdminssionItems[listAdminssionItems.length-1].dischtime),
+					deathtime: (listAdminssionItems[0].deathtime),
+					diagnosis: listAdminssionItems[0].diagnosis.toLowerCase().capitalize(),
+					religion: listAdminssionItems[0].religion.toLowerCase().capitalize(),
+					height: 0,
+					weight: 0,
+					pregnant: 0
+				},
+				systolic: [],
+				diastolic: [],
+				hemoA1c: [],
+				glucoseBlood: [],
+				glucoseUrine: [],
+				creatinine: [],
+				albumin: [],
+				choles: [],
+				trigly: [],
+				simva: [],
+				lisin: [],
+				RR: [],
+				acar: [],
+				met: [],
+				Glit: [],
+				DPP4: [],
+				SH: [],
+				//notes: listNoteItems
+			};
 
-		for (var i in listItems){
-			if (new Date(listItems[i].time) > new Date(result.info.dischtime)) {
-				result.info.dischtime = listItems[i].time;
-			}
-			if (listItems[i].itemid == constant.NBPsystolic) {
-				result.systolic.push({
-					time: listItems[i].time, 
-					value: listItems[i].value
-				});
-			} else if (listItems[i].itemid == constant.NBPdiastolic) {
-				result.diastolic.push({
-					time: listItems[i].time, 
-					value: listItems[i].value
-				});
-			}
-		}  
+			for (var i in listItems){
+				if (new Date(listItems[i].time) > new Date(result.info.dischtime)) {
+					result.info.dischtime = listItems[i].time;
+				}
+				if (listItems[i].itemid == constant.NBPsystolic) {
+					result.systolic.push({
+						time: listItems[i].time, 
+						value: listItems[i].value
+					});
+				} else if (listItems[i].itemid == constant.NBPdiastolic) {
+					result.diastolic.push({
+						time: listItems[i].time, 
+						value: listItems[i].value
+					});
+				} else if (listItems[i].itemid == constant.weight) {
+					result.info.weight = listItems[i].value;
+				} else if (listItems[i].itemid == constant.height) {
+					result.info.height = listItems[i].value;
+				} else if (listItems[i].itemid == constant.pregnant) {
+					result.info.pregnant = listItems[i].value;
+				}
+			}  
 
-		for (let i in listLabitems){
-			if (new Date(listLabitems[i].time) > new Date(result.info.dischtime)) {
-				result.info.dischtime = listLabitems[i].time;
+			for (let i in listLabitems){
+				if (new Date(listLabitems[i].time) > new Date(result.info.dischtime)) {
+					result.info.dischtime = listLabitems[i].time;
+				}
+				switch (listLabitems[i].itemid) {
+				case (constant.glucoseBlood):
+					result.glucoseBlood.push({time: listLabitems[i].time, value: listLabitems[i].value});
+					break;
+				case (constant.glucoseUrine):
+					result.glucoseUrine.push({time: listLabitems[i].time, value: listLabitems[i].value});
+					break;
+				case (constant.creatinine):
+					result.creatinine.push({time: listLabitems[i].time, value: listLabitems[i].value});
+					break;
+				case (constant.albumin):
+					result.albumin.push({time: listLabitems[i].time, value: listLabitems[i].value});
+					break;
+				case (constant.hemoA1c):
+					result.hemoA1c.push({time: listLabitems[i].time, value: listLabitems[i].value});
+					break;
+				case (constant.choles):
+					result.choles.push({time: listLabitems[i].time, value: listLabitems[i].value});
+					break;
+				case (constant.trigly):
+					result.trigly.push({time: listLabitems[i].time, value: listLabitems[i].value});
+					break;
+				}
 			}
-			switch (listLabitems[i].itemid) {
-			case (constant.glucoseBlood):
-				result.glucoseBlood.push({time: listLabitems[i].time, value: listLabitems[i].value});
-				break;
-			case (constant.glucoseUrine):
-				result.glucoseUrine.push({time: listLabitems[i].time, value: listLabitems[i].value});
-				break;
-			case (constant.creatinine):
-				result.creatinine.push({time: listLabitems[i].time, value: listLabitems[i].value});
-				break;
-			case (constant.albumin):
-				result.albumin.push({time: listLabitems[i].time, value: listLabitems[i].value});
-				break;
-			case (constant.hemoA1c):
-				result.hemoA1c.push({time: listLabitems[i].time, value: listLabitems[i].value});
-				break;
-			case (constant.choles):
-				result.choles.push({time: listLabitems[i].time, value: listLabitems[i].value});
-				break;
-			case (constant.trigly):
-				result.trigly.push({time: listLabitems[i].time, value: listLabitems[i].value});
-				break;
+
+			for (let i in listDrugItems){
+				if (new Date(listDrugItems[i].time) > new Date(result.info.dischtime)) {
+					result.info.dischtime = listDrugItems[i].time;
+				}
+				switch (listDrugItems[i].drug) {
+				case (constant.simva):
+					result.simva.push(listDrugItems[i]);
+					break;
+				case (constant.lisin):
+					result.lisin.push(listDrugItems[i]);
+					break;
+				case (constant.RR):
+					result.RR.push(listDrugItems[i]);
+					break;
+				case (constant.acar):
+					result.acar.push(listDrugItems[i]);
+					break;
+				case (constant.met):
+					result.met.push(listDrugItems[i]);
+					break;
+				case (constant.Glit):
+					result.Glit.push(listDrugItems[i]);
+					break;
+				case (constant.DPP4):
+					result.DPP4.push(listDrugItems[i]);
+					break;
+				case (constant.SH):
+					result.SH.push(listDrugItems[i]);
+					break;
+				}
+			}  
+			
+			res.status(200)
+				.json({
+					status: 'success',
+					message: 'Retrieved diabete patient id = ' + req.query.id,
+					data: result
+				});
+		} else {
+			res.status(200)
+				.json({
+					status: 'fail',
+					message: 'Patient not exist'
+				});
+		}
+	}).catch(error => {
+		return next(error);
+	});
+}
+
+// t.any('select itemid, value, charttime as time ' 
+// + 'from chartevents '
+// + 'where subject_id = $1 ' 
+// + 'and (itemid = $2 or itemid = $3 or itemid = $4 or itemid = $5 or itemid = $6) '
+// + 'order by charttime asc'
+// , [req.query.id, constant.NBPsystolic, constant.NBPdiastolic, constant.weight, constant.height, constant.pregnant]),
+
+function getFullAllPatients(req, res, next) {
+	db.task('get-everything', t => {
+		return t.batch([
+			t.any('select p.subject_id as id, p.gender, p.dob, da.diagnosis '
+				+ 'from patients p join diabete_admissions da on p.subject_id = da.subject_id'),
+			t.any('select subject_id as id, itemid, value, charttime as time from chartevents '
+				+ 'where subject_id in (select subject_id from diabete_admissions) '
+				+ 'and(itemid = $1 or itemid = $2 or itemid = $3 or itemid = $4 or itemid = $5) '
+				+ 'order by subject_id, charttime asc', 
+			[constant.NBPdiastolic, constant.weight, constant.height, constant.pregnant, constant.newNBPdiastolic]
+			),
+			t.any('select subject_id as id, itemid, value, charttime as time ' 
+				+ 'from labevents '
+				+ 'where subject_id in (select subject_id from diabete_admissions) ' 
+				+ 'and itemid in ($1) '
+				+ 'order by subject_id, charttime asc'
+				, [constant.glucoseBlood]),
+		]);
+	}).then(data => {
+		var listPatients = data[0];
+		var listLabitems = data[1];
+		var listGlucose = data[2];
+
+		for (let i = 0; i < listPatients.length; i++) {
+			var chartDate;
+
+			listPatients[i].Pregnancies = 0;
+			listPatients[i].Glucose = -1;	
+			listPatients[i].BloodPressure = 72;
+			listPatients[i].SkinThickness = 21;
+			listPatients[i].Insulin = 156;
+			listPatients[i].BMI = -1;
+			listPatients[i].DiabetesPedigreeFunction = 0.472;
+			listPatients[i].Age = -1;
+			listPatients[i].Outcome = 1;
+
+			listPatients[i].weight = -1;
+			listPatients[i].height = -1;
+			listPatients[i].dob = listPatients[i].dob;
+	
+			for (let j = 0; j < listLabitems.length; j++) {
+				if (listPatients[i].id < listLabitems[j].id) break;
+				else if (listPatients[i].id === listLabitems[j].id) {
+					switch (listLabitems[j].itemid) {
+					case (constant.NBPdiastolic):
+						listPatients[i].BloodPressure = Number(listLabitems[j].value);
+						chartDate = listLabitems[j].time;
+						break;
+					case (constant.weight):
+						listPatients[i].weight = Number(listLabitems[j].value);
+						break;
+					case (constant.height):
+						listPatients[i].height = Number(listLabitems[j].value);
+						break;
+					case (constant.pregnant):
+						listPatients[i].Pregnancies = Number(listLabitems[j].value);
+						break;
+					case (constant.newNBPdiastolic):
+						listPatients[i].BloodPressure = Number(listLabitems[j].value);
+						chartDate = listLabitems[j].time;
+						break;
+					}
+					
+				}
 			}
+
+			for (let j = 0; j < listGlucose.length; j++) {
+				if (listPatients[i].id < listGlucose[j].id) break;
+				else if (listPatients[i].id === listGlucose[j].id) {
+					listPatients[i].Glucose = Number(listGlucose[j].value);
+				}
+			}
+
+			if (listPatients[i].height === -1) {
+				if (listPatients[i].gender === 'M') {
+					listPatients[i].height = 177;
+				} else {
+					listPatients[i].height = 166;
+				}
+			}
+
+			if (listPatients[i].height <= 100) {
+				listPatients[i].height = listPatients[i].height * 2.54;
+			}
+
+			if (listPatients[i].weight === -1) {
+				listPatients[i].weight = 57.7;
+			}
+
+			listPatients[i].BMI = (listPatients[i].weight / (listPatients[i].height * listPatients[i].height / 10000)).toFixed(1);
+			listPatients[i].Age = (new Date(chartDate)).getFullYear() - (new Date(listPatients[i].dob)).getFullYear();
+
+			if (listPatients[i].Age > 100) {
+				listPatients[i].Age = listPatients[i].Age - 30;
+			} else if (listPatients[i].Age > 70) {
+				listPatients[i].Age = listPatients[i].Age - 20;
+			} else if (listPatients[i].Age < 10) {
+				listPatients[i].Age = listPatients[i].Age + 30;
+			}
+
+			delete listPatients[i].id;
+			delete listPatients[i].dob;
+			delete listPatients[i].weight;
+			delete listPatients[i].height;
+			delete listPatients[i].gender;
+			delete listPatients[i].diagnosis;
 		}
 
-		for (let i in listDrugItems){
-			if (new Date(listDrugItems[i].time) > new Date(result.info.dischtime)) {
-				result.info.dischtime = listDrugItems[i].time;
-			}
-			switch (listDrugItems[i].drug) {
-			case (constant.simva):
-				result.simva.push(listDrugItems[i]);
-				break;
-			case (constant.lisin):
-				result.lisin.push(listDrugItems[i]);
-				break;
-			case (constant.RR):
-				result.RR.push(listDrugItems[i]);
-				break;
-			case (constant.acar):
-				result.acar.push(listDrugItems[i]);
-				break;
-			case (constant.met):
-				result.met.push(listDrugItems[i]);
-				break;
-			case (constant.Glit):
-				result.Glit.push(listDrugItems[i]);
-				break;
-			case (constant.DPP4):
-				result.DPP4.push(listDrugItems[i]);
-				break;
-			case (constant.SH):
-				result.SH.push(listDrugItems[i]);
-				break;
-			}
-		}  
-    
 		res.status(200)
 			.json({
-				status: 'success',
-				message: 'Retrieved diabete patient id = ' + req.query.id,
-				data: result
+				status: 1,
+				message: 'Retrieved ALL diabete patients',
+				length: listPatients.length,
+				data: listPatients
 			});
 	}).catch(error => {
 		return next(error);
@@ -223,6 +369,7 @@ function getPatient(req, res, next) {
 
 module.exports = {
 	getAllPatients: getAllPatients,
-	getPatient: getPatient
+	getFullAllPatients: getFullAllPatients,
+	getPatient: getPatient,
 };
 

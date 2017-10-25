@@ -446,7 +446,7 @@ var figue = function () {
 			//alert(centroids);
 			
 			// update the degree of membership of each vector
-			previousMembershipMatrix = membershipMatrix.copy() ;
+			var previousMembershipMatrix = membershipMatrix.copy() ;
 			for (i = 0 ; i < membershipMatrix.rows ; i++) {
 				for (j = 0 ; j < k ; j++) {
 					membershipMatrix.mtx[i][j] = 0;

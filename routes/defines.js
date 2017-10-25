@@ -9,6 +9,11 @@ define('NBPsystolic', 455);
 define('NBPdiastolic', 8441);
 define('newNBPsystolic', 220050);
 define('newNBPdiastolic', 220051);
+define('weight', 763);
+define('height', 226512);
+define('pregnant', 225082);
+define('insulin1', 30045);
+define('insulin2', 30100);
 
 // Labevents
 define('hemoA1c', 50852);

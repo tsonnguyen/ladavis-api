@@ -1,4 +1,5 @@
 var fs = require('fs');
+var http = require('http');
 
 var ml = require('machine_learning');
 var HiddenLayer = require('machine_learning/lib/HiddenLayer');
@@ -13,10 +14,15 @@ var figue = require('./figue').figue;
 var rdForest = require('./randomforest').rdForest;
 var RandomForestClassifier = require('random-forest-classifier').RandomForestClassifier;
 var crossValidation = require('ml-cross-validation');
+var csvWriter = require('csv-write-stream')
+var writer = csvWriter()
 
 var csv = require('fast-csv');
 
 var labelMode = 'dou';
+
+var correctArray = [3, 117, 72, 23, 30.5, 32, 0.3725, 29];
+var correctArray2 = [3.845, 120.9, 69.1, 20.54, 79.8, 32, 0.4719, 33.24];
 
 var oriData = [];
 var oriLabel = [];
@@ -31,8 +37,8 @@ var nevLabelArray = [];
 
 var trainingPos = 179;
 var trainingNev = 359;
-var testingPos = 76;
-var testingNev = 154;
+// var testingPos = 76;
+// var testingNev = 154;
 var trainingDataArray = [];
 var trainingLabelArray = [];
 var testDataArray = [];
@@ -41,8 +47,23 @@ var testLabelArray = [];
 var totalArray = [0, 0, 0, 0, 0, 0, 0, 0];
 var lengthArray = [0, 0, 0, 0, 0, 0, 0, 0];
 
-var right = 0;
-var wrong = 0;
+// var options = {
+// 	host: 'localhost',
+// 	port: 4000,
+// 	path: '/ladavis/rest-api/all-full-patients',
+// 	method: 'GET'
+// };
+
+// http.request(options, function(res) {
+// 	res.on('data', function (chunk) {
+// 		var response = JSON.parse(chunk.toString());
+// 		writer.pipe(fs.createWriteStream('out.csv'))
+// 		for (let i in response.data) {
+// 			writer.write(response.data[i])
+// 		}
+// 		writer.end();
+// 	});
+// }).end();
 
 csv.fromPath('data/pima-diabetes.csv')
 	.on('data', function (csvRow) {
@@ -51,9 +72,9 @@ csv.fromPath('data/pima-diabetes.csv')
 		for (var i in csvRow) {
 			if (isNaN(Number(i))) continue;
 			csvRow[i] = Number(csvRow[i]);
-			if (csvRow[i] !== 0) {
-				totalArray[i] = totalArray[i] + csvRow[i];
-				lengthArray[i] = lengthArray[i] + 1;
+			if (csvRow[i] === 0 && Number(i) !== 8) {
+				csvRow[i] = correctArray[i];
+				//csvRow[i] = correctArray2[i];
 			}
 		}
 
@@ -66,7 +87,7 @@ csv.fromPath('data/pima-diabetes.csv')
 
 		//dataArray.push(csvRow);
 
-		oriData.push(csvRow.slice())
+		oriData.push(csvRow.slice());
 		if (Number(label) === 0) {
 			nevDataArray.push(csvRow.slice());
 		} else {
@@ -77,20 +98,20 @@ csv.fromPath('data/pima-diabetes.csv')
 		if (Number(label) === 1) {
 			//labelArray.push([1, 0]);
 			if (labelMode === 'dou') {
-				oriLabel.push([1, 0])
+				oriLabel.push([1, 0]);
 				posLabelArray.push([1, 0]);
 			} else {
-				oriLabel.push(1)
+				oriLabel.push(1);
 				posLabelArray.push(1);
 			}
 			
 		} else {
 			//labelArray.push([0, 1]);
 			if (labelMode === 'dou') {
-				oriLabel.push([0, 1])
+				oriLabel.push([0, 1]);
 				nevLabelArray.push([0, 1]);
 			} else {
-				oriLabel.push(0)
+				oriLabel.push(0);
 				nevLabelArray.push(0);
 			}
 		}
@@ -129,6 +150,40 @@ csv.fromPath('data/pima-diabetes.csv')
 
 	.on('end', function () {
 
+		// var arrayPatient = [];
+		// for (let kkk = 8000; kkk <= 0; kkk++) {
+		// 	if (arrayPatient.length === 200) break;
+		// 	var options = {
+		// 		host: 'localhost',
+		// 		port: 4000,
+		// 		path: '/ladavis/rest-api/patient?id=' + kkk,
+		// 		method: 'GET'
+		// 	};
+			
+		// 	http.request(options, function(res) {
+		// 		res.on('data', function (chunk) {
+		// 			var response = JSON.parse(chunk.toString());
+		// 			if (response.status !== 'fail') {
+		// 				var data = response.data;
+		// 				if (data.info.height !== 0 && data.info.weight !== 0 
+		// 				&& data.diastolic.length !== 0 && data.glucoseBlood.length !== 0) {
+		// 					arrayPatient.push(kkk);
+		// 				}
+		// 			}
+		// 		});
+		// 	}).end();
+		// }
+		
+		// setTimeout(function() {
+		// 	fs.writeFile('/patient', JSON.stringify(arrayPatient), function(err) {
+		// 		if(err) {
+		// 			console.log('bugggg')
+		// 			return console.log(err);
+		// 		}
+		// 	}); 
+		// }, 10000);
+		
+
 		console.log('Nev: ' + nevDataArray.length);
 		console.log('Pos: ' + posDataArray.length);
 
@@ -136,8 +191,8 @@ csv.fromPath('data/pima-diabetes.csv')
 
 		console.log('------------------------------------');
 		//init MLP
-		var runMLP = 50;
-		var runMLPOneTime = 2;
+		var runMLP = -1;
+		var runMLPOneTime = -1;
 		var best1 = 0;
 		var best2 = 0;
 		var TP = 0, FN = 0, FP = 0, TN = 0;
@@ -145,6 +200,7 @@ csv.fromPath('data/pima-diabetes.csv')
 			preProcess();
 			if (l % 1 === 0) console.log('running ' + l)
 			for (var j = 0; j <= runMLPOneTime; j++) {
+				//if (j % 1 === 0) console.log('running ' + j)
 				var count = 0;
 				var tempTP = 0, tempFN = 0, tempFP = 0, tempTN = 0;
 
@@ -277,7 +333,7 @@ csv.fromPath('data/pima-diabetes.csv')
 			console.log('FP:' + FP)
 			console.log('TN:' + TN)
 			console.log('Leave 1 out')
-			console.log(confusionMatrixLeave1.accuracy)
+			console.log(confusionMatrixLeave1)
 			console.log('5 fold')
 			console.log(confusionMatrixFold5)
 			console.log('10 fold')
@@ -289,6 +345,9 @@ csv.fromPath('data/pima-diabetes.csv')
 		//shuffle(dataArray)
 		// console.log(dataArray)
 		// console.log(labelArray)
+		// oriLabel =  douToSingle(oriLabel);
+		// posLabelArray = douToSingle(posLabelArray);
+		// nevDataArray = douToSingle(nevDataArray)
 		console.log('------------------------------------');
 		var runFuzzy = -1;
 		var runFuzzyOneTime = -1;
@@ -311,7 +370,8 @@ csv.fromPath('data/pima-diabetes.csv')
 
 		for (var l = 0; l <= runFuzzy; l++) {
 			preProcess();
-			if (l % 10 === 0) console.log('running ' + l)
+			labelArray =  douToSingle(labelArray);
+			//if (l % 10 === 0) console.log('running ' + l)
 			for (var j = 0; j <= runFuzzyOneTime; j++) {
 					
 				var clusters = figue.fcmeans(2, dataArray.slice(768 - 230, 768), 0.00000000001, 1.25) ;
@@ -413,77 +473,80 @@ csv.fromPath('data/pima-diabetes.csv')
 		}
 
 		var runRandom = -1;
+		var runRandomOneTime = -1;
 		var best1 = 0;
 		var best2 = 0;
 		var bestAccuracy = 0;
 		var TP = 0, FN = 0, FP = 0, TN = 0;
 		var forest = new rdForest.RandomForest();
 		var result;
-		for (var j = 0; j <= runRandom; j++) {
-			if (j % 1000 === 0) console.log('running ' + j)
+
+		for (var l = 0; l <= runRandom; l++) {
 			preProcess();
-			var count = 0;
-			var tempTP = 0, tempFN = 0, tempFP = 0, tempTN = 0;
-			// .slice(768 - 230, 768)
-			forest.train(dataArray.slice(0, 768 - 230), labelArray.slice(0, 768 - 230)); 
-			result = forest.predict(dataArray.slice(768 - 230, 768));
-			for (let i in result) {
-				if (isNaN(Number(i))) continue;
-				var index = Number(i) + 768 - 231;
-				
-				if (Number(labelArray[index]) === 1) {
-					if (result[i] > 0.5) {
-						count++;
-						tempTN++;
+			if (l % 10 === 0) console.log('running ' + l)
+			for (var j = 0; j <= runRandomOneTime; j++) {
+				var count = 0;
+				var tempTP = 0, tempFN = 0, tempFP = 0, tempTN = 0;
+				// .slice(768 - 230, 768)
+				forest.train(dataArray.slice(0, 768 - 230), labelArray.slice(0, 768 - 230)); 
+				result = forest.predict(dataArray.slice(768 - 230, 768));
+				for (let i in result) {
+					if (isNaN(Number(i))) continue;
+					var index = Number(i) + 768 - 231;
+					
+					if (Number(labelArray[index]) === 1) {
+						if (result[i] > 0.5) {
+							count++;
+							tempTN++;
+						} else {
+							tempFP++;
+						}
 					} else {
-						tempFP++;
-					}
-				} else {
-					if (result[i] < 0.5) {
-						count++;
-						tempTP++;
-					} else {
-						tempFN++;
+						if (result[i] < 0.5) {
+							count++;
+							tempTP++;
+						} else {
+							tempFN++;
+						}
 					}
 				}
-			}
 
+				var print = false;
+				if (count < (230 / 2)) {
+					//if (tempTP === 0 || tempTP > tempFN) {
+						if ((best1 === 0 && best2 === 0) || (count < best1 && count < 230 - best2)) {
+							best1 = count;
+							best2 = 230 - count;
+							print = true;
+							TN = tempTN;
+							FN = tempFN;
+							TP = tempTP;
+							FP = tempFP;
+						}
+					//}
+				} else if (count >= (230 / 2)) {
+					//if (tempTP === 0 || tempTP > tempFN) {
+						if ((best1 === 0 && best2 === 0) || (count > best2 && count > 230 - best1)) {
+							best2 = count;
+							best1 = 230 - count;
+							print = true;
+							TN = tempTN;
+							FN = tempFN;
+							TP = tempTP;
+							FP = tempFP;
+						}
+					//}
+				}
 
-			var print = false;
-			if (count < (230 / 2)) {
-				//if (tempTP === 0 || tempTP > tempFN) {
-					if ((best1 === 0 && best2 === 0) || (count < best1 && count < 230 - best2)) {
-						best1 = count;
-						best2 = 230 - count;
-						print = true;
-						TN = tempTN;
-						FN = tempFN;
-						TP = tempTP;
-						FP = tempFP;
-					}
-				//}
-			} else if (count >= (230 / 2)) {
-				//if (tempTP === 0 || tempTP > tempFN) {
-					if ((best1 === 0 && best2 === 0) || (count > best2 && count > 230 - best1)) {
-						best2 = count;
-						best1 = 230 - count;
-						print = true;
-						TN = tempTN;
-						FN = tempFN;
-						TP = tempTP;
-						FP = tempFP;
-					}
-				//}
-			}
-
-			if (print) {
-				finalClusters = clusters;
-				fs.writeFile('/random', JSON.stringify(forest), function(err) {
-					if(err) {
-						return console.log(err);
-					}
-					//console.log("The file was saved!");
-				}); 
+				if (print) {
+					finalClusters = clusters;
+					fs.writeFile('/random', JSON.stringify(forest), function(err) {
+						if(err) {
+							return console.log(err);
+						}
+						//console.log("The file was saved!");
+					}); 
+				}
 			}
 		}
 
