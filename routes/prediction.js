@@ -19,13 +19,17 @@ var writer = csvWriter()
 
 var csv = require('fast-csv');
 
-var labelMode = 'dou';
+var labelMode = 'sing';
 
 var correctArray = [3, 117, 72, 23, 30.5, 32, 0.3725, 29];
 var correctArray2 = [3.845, 120.9, 69.1, 20.54, 79.8, 32, 0.4719, 33.24];
 
 var oriData = [];
 var oriLabel = [];
+
+var randomDataArray = new Array;
+var randomPosArray = new Array;
+var randomNevArray = new Array;
 
 var dataArray = [];
 var posDataArray = [];
@@ -78,8 +82,22 @@ csv.fromPath('data/pima-diabetes.csv')
 			}
 		}
 
+		// if (randomDataArray.length < 1000) {
+		// 	randomDataArray.push({
+		// 		preg: Number(csvRow[0]),
+		// 		glu: Number(csvRow[1]), 
+		// 		bp: Number(csvRow[2]),
+		// 		skin: Number(csvRow[3]),
+		// 		insulin: Number(csvRow[4]),
+		// 		bmi: Number(csvRow[5]),
+		// 		deg: Number(csvRow[6]),
+		// 		age: Number(csvRow[7]),
+		// 		outcome: Number(csvRow[8]) === 1 ? 'yes' : 'no'
+		// 	})
+		// }
+
 		var label = csvRow[csvRow.length - 1];
-		csvRow.splice(-1, 1);
+		//csvRow.splice(-1, 1);
 
 		// var traningData;
 		// traningData = csvRow;
@@ -90,8 +108,30 @@ csv.fromPath('data/pima-diabetes.csv')
 		oriData.push(csvRow.slice());
 		if (Number(label) === 0) {
 			nevDataArray.push(csvRow.slice());
+			randomNevArray.push({
+				preg: Number(csvRow[0]),
+				glu: Number(csvRow[1]), 
+				bp: Number(csvRow[2]),
+				skin: Number(csvRow[3]),
+				insulin: Number(csvRow[4]),
+				bmi: Number(csvRow[5]),
+				deg: Number(csvRow[6]),
+				age: Number(csvRow[7]),
+				outcome: 'no'
+			})
 		} else {
 			posDataArray.push(csvRow.slice());
+			randomPosArray.push({
+				preg: Number(csvRow[0]),
+				glu: Number(csvRow[1]), 
+				bp: Number(csvRow[2]),
+				skin: Number(csvRow[3]),
+				insulin: Number(csvRow[4]),
+				bmi: Number(csvRow[5]),
+				deg: Number(csvRow[6]),
+				age: Number(csvRow[7]),
+				outcome: 'yes'
+			})
 		}
 
 		//labelArray.push(label);
@@ -113,6 +153,8 @@ csv.fromPath('data/pima-diabetes.csv')
 			} else {
 				oriLabel.push(0);
 				nevLabelArray.push(0);
+				// oriLabel.push(-1);
+				// nevLabelArray.push(-1);
 			}
 		}
 
@@ -327,11 +369,16 @@ csv.fromPath('data/pima-diabetes.csv')
 			var confusionMatrixLeave1 = crossValidation.leaveOneOut(MyClassifier2, choseData, douToSingle(choseLabel), {model: mlpClassifier});
 			var confusionMatrixFold5 = crossValidation.kFold(MyClassifier2, choseData, douToSingle(choseLabel), {model: mlpClassifier}, 5);
 			var confusionMatrixFold10 = crossValidation.kFold(MyClassifier2, choseData, douToSingle(choseLabel), {model: mlpClassifier}, 10);
+			var precision = TP / (TP + FP);
+			var recall = TP / (TP + FN);
+			var f1 = 2 * precision * recall / (precision + recall);
 			console.log('done')
 			console.log('TP:' + TP)
 			console.log('FN:' + FN)
 			console.log('FP:' + FP)
 			console.log('TN:' + TN)
+			console.log('precision:' + precision.toFixed(2))
+			console.log('recall:' + recall.toFixed(2))
 			console.log('Leave 1 out')
 			console.log(confusionMatrixLeave1)
 			console.log('5 fold')
@@ -457,11 +504,16 @@ csv.fromPath('data/pima-diabetes.csv')
 			var confusionMatrixLeave1 = crossValidation.leaveOneOut(MyClassifier, choseData, choseLabel, {model: finalClusters});
 			var confusionMatrixFold5 = crossValidation.kFold(MyClassifier, choseData, choseLabel, {model: finalClusters}, 5);
 			var confusionMatrixFold10 = crossValidation.kFold(MyClassifier, choseData, choseLabel, {model: finalClusters}, 10);
+			var precision = TP / (TP + FP);
+			var recall = TP / (TP + FN);
+			var f1 = 2 * precision * recall / (precision + recall);
 			console.log('done')
 			console.log('TP:' + TP)
 			console.log('FN:' + FN)
 			console.log('FP:' + FP)
 			console.log('TN:' + TN)
+			console.log('precision:' + precision.toFixed(2))
+			console.log('recall:' + recall.toFixed(2))
 			console.log('Leave 1 out')
 			console.log(confusionMatrixLeave1)
 			console.log('5 fold')
@@ -479,32 +531,37 @@ csv.fromPath('data/pima-diabetes.csv')
 		var bestAccuracy = 0;
 		var TP = 0, FN = 0, FP = 0, TN = 0;
 		var forest = new rdForest.RandomForest();
-		var result;
+		var optionsRandom = {};
+		optionsRandom.numTrees = 100; // defaults
+		optionsRandom.maxDepth = 8;
+		optionsRandom.numTries = 100000;
 
 		for (var l = 0; l <= runRandom; l++) {
 			preProcess();
-			if (l % 10 === 0) console.log('running ' + l)
+			if (l % 1 === 0) {
+				console.log('running ' + l)
+			}
 			for (var j = 0; j <= runRandomOneTime; j++) {
 				var count = 0;
+				var count1 = 0;
+				var count2 = 0;
 				var tempTP = 0, tempFN = 0, tempFP = 0, tempTN = 0;
 				// .slice(768 - 230, 768)
-				forest.train(dataArray.slice(0, 768 - 230), labelArray.slice(0, 768 - 230)); 
-				result = forest.predict(dataArray.slice(768 - 230, 768));
-				for (let i in result) {
-					if (isNaN(Number(i))) continue;
-					var index = Number(i) + 768 - 231;
-					
-					if (Number(labelArray[index]) === 1) {
-						if (result[i] > 0.5) {
+				forest.train(dataArray.slice(0, 768 - 230), labelArray.slice(0, 768 - 230), optionsRandom); 
+
+				for (let i = 768 - 230; i < 768; i++) {
+					var result = forest.predictOne(dataArray[i]);
+					if (result > 0.5) {
+						if (Number(labelArray[i]) === 1) {
 							count++;
-							tempTN++;
+							tempTP++;
 						} else {
 							tempFP++;
 						}
 					} else {
-						if (result[i] < 0.5) {
+						if (Number(labelArray[i]) === 0) {
 							count++;
-							tempTP++;
+							tempTN++;
 						} else {
 							tempFN++;
 						}
@@ -551,22 +608,90 @@ csv.fromPath('data/pima-diabetes.csv')
 		}
 
 		if (runRandom >= 0) {
+			var precision = TP / (TP + FP);
+			var recall = TP / (TP + FN);
+			var f1 = 2 * precision * recall / (precision + recall);
 			console.log('done')
 			console.log('TP:' + TP)
 			console.log('FN:' + FN)
 			console.log('FP:' + FP)
 			console.log('TN:' + TN)
+			console.log('precision:' + precision.toFixed(2))
+			console.log('recall:' + recall.toFixed(2))
+			console.log('f1:' + f1.toFixed(2))
 			console.log(count / 230)
 			console.log((230 - count) / 230)
 		}
+
+		var rf = new RandomForestClassifier({
+			n_estimators: 30,
+			// criterion: 'gini',
+			// max_features: 'auto',
+			// min_samples_leaf: 1, 
+			// min_samples_split: 2,
+			// verbose: 0
+		});
+
+		// console.log(randomDataArray[0])
+		// console.log(data[0])
+
+		
+		// preProcess();
+		// rf.fit(randomDataArray.slice(0, 768 - 230), null, "outcome", function(err, trees){
+		// 	// console.log(JSON.stringify(trees, null, 4));
+		// 	console.log('aaaa')
+		// 	var TP = 0, FP = 0, TN = 0, FN = 0, count = 0;
+		// 	for (let i = 768 - 230; i < 768; i++) {
+		// 		var test = {
+		// 			preg: randomDataArray[i].preg,
+		// 			glu: randomDataArray[i].glu,
+		// 			bp: randomDataArray[i].bp,
+		// 			skin: randomDataArray[i].skin,
+		// 			insulin: randomDataArray[i].insulin,
+		// 			bmi: randomDataArray[i].bmi,
+		// 			deg: randomDataArray[i].deg,
+		// 			age: randomDataArray[i].age,
+		// 		}
+		// 		var pred = rf.predict([test], trees);
+		// 		if (randomDataArray[i].outcome === 'yes') {
+		// 			if (pred[0] === 'yes') {
+		// 				TP++;
+		// 				count++
+		// 			} else {
+		// 				FN++;
+		// 			}
+		// 		} else {
+		// 			if (pred[0] === 'no') {
+		// 				TN++;
+		// 				count++
+		// 			} else {
+		// 				FP++;
+		// 			}
+		// 		}
+		// 	}
+		// 	var precision = TP / (TP + FP);
+		// 	var recall = TP / (TP + FN);
+		// 	var f1 = 2 * precision * recall / (precision + recall);
+		// 	console.log('done')
+		// 	console.log('TP:' + TP)
+		// 	console.log('FN:' + FN)
+		// 	console.log('FP:' + FP)
+		// 	console.log('TN:' + TN)
+		// 	console.log('precision:' + precision.toFixed(2))
+		// 	console.log('recall:' + recall.toFixed(2))
+		// 	console.log('f1:' + f1.toFixed(2))
+		// 	console.log(count / 230)
+	  
+		// 	// pred = ["virginica", "setosa"]
+		// });
 	});
 
 function preProcess() {
-	function shuffle(a, b) {
+	function shuffle(a, b = null) {
 		for (let i = a.length - 1; i > 0; i--) {
 			const j = Math.floor(Math.random() * (i + 1));
 			[a[i], a[j]] = [a[j], a[i]];
-			[b[i], b[j]] = [b[j], b[i]];
+			if (b !== null) [b[i], b[j]] = [b[j], b[i]];
 		}
 	}
 
@@ -575,27 +700,39 @@ function preProcess() {
 
 	trainingDataArray = [];
 	trainingLabelArray = [];
+	trainingRandom = [];
 	trainingDataArray = trainingDataArray.concat(posDataArray.slice(0, trainingPos));
 	trainingDataArray = trainingDataArray.concat(nevDataArray.slice(0, trainingNev));
 	trainingLabelArray = trainingLabelArray.concat(posLabelArray.slice(0, trainingPos));
 	trainingLabelArray = trainingLabelArray.concat(nevLabelArray.slice(0, trainingNev));
+	trainingRandom = trainingRandom.concat(randomPosArray.slice(0, trainingPos));
+	trainingRandom = trainingRandom.concat(randomNevArray.slice(0, trainingNev));
 
 	testDataArray = [];
 	testLabelArray = [];
+	testRandom = [];
 	testDataArray = testDataArray.concat(posDataArray.slice(trainingPos, 268));
 	testDataArray = testDataArray.concat(nevDataArray.slice(trainingNev, 500));
 	testLabelArray = testLabelArray.concat(posLabelArray.slice(trainingPos, 268));
 	testLabelArray = testLabelArray.concat(nevLabelArray.slice(trainingNev, 500));
+	testRandom = testRandom.concat(randomPosArray.slice(trainingPos, 268));
+	testRandom = testRandom.concat(randomNevArray.slice(trainingNev, 500));
 
 	shuffle(trainingDataArray, trainingLabelArray);
 	shuffle(testDataArray, testLabelArray);
+	shuffle(trainingRandom, null);
+	shuffle(testRandom, null);
+	
 
 	dataArray = [];
 	labelArray = [];
+	randomDataArray = [];
 	dataArray = dataArray.concat(trainingDataArray);
 	dataArray = dataArray.concat(testDataArray);
 	labelArray = labelArray.concat(trainingLabelArray);
 	labelArray = labelArray.concat(testLabelArray);
+	randomDataArray = randomDataArray.concat(trainingRandom);
+	randomDataArray = randomDataArray.concat(testRandom);
 	// dataArray = oriData;
 	// labelArray = oriLabel;
 	// console.log(dataArray.length)

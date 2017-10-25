@@ -1,9 +1,9 @@
 var database = require('./dbSetting');
 var db = database.db ;
 
-// var prediction = require('./prediction');
+var prediction = require('./prediction');
 // var test = require('./test');
-var test = require('./test2');
+// var test = require('./test2');
 // var classifier = prediction.classifier;
 
 var constant = require('./defines.js');
