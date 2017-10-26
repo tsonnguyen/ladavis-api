@@ -59,7 +59,7 @@ var lengthArray = [0, 0, 0, 0, 0, 0, 0, 0];
 // };
 
 // http.request(options, function(res) {
-// 	res.on('data', function (chunk) {
+// 	res.on('data', function (chunk) {	
 // 		var response = JSON.parse(chunk.toString());
 // 		writer.pipe(fs.createWriteStream('out.csv'))
 // 		for (let i in response.data) {
@@ -97,7 +97,22 @@ csv.fromPath('data/pima-diabetes.csv')
 		// }
 
 		var label = csvRow[csvRow.length - 1];
-		//csvRow.splice(-1, 1);
+		csvRow.splice(-1, 1);
+
+		// csvRow = [
+		// 	csvRow[0],
+		// 	csvRow[1],
+		// 	csvRow[2],
+		// 	csvRow[5],
+		// 	csvRow[7]
+		// ]
+
+		// csvRow = [
+		// 	csvRow[1],
+		// 	csvRow[4],
+		// 	csvRow[5],
+		// 	csvRow[7]
+		// ]
 
 		// var traningData;
 		// traningData = csvRow;
@@ -229,8 +244,6 @@ csv.fromPath('data/pima-diabetes.csv')
 		console.log('Nev: ' + nevDataArray.length);
 		console.log('Pos: ' + posDataArray.length);
 
-		// console.log(dataArray)
-
 		console.log('------------------------------------');
 		//init MLP
 		var runMLP = -1;
@@ -241,19 +254,20 @@ csv.fromPath('data/pima-diabetes.csv')
 		for (var l = 0; l <= runMLP; l++) {
 			preProcess();
 			if (l % 1 === 0) console.log('running ' + l)
+
+			var mlpClassifier = new ml.MLP({
+				input: dataArray.slice(0, 768 - 230),
+				label: labelArray.slice(0, 768 - 230),
+				n_ins: 5,
+				n_outs: 2,
+				hidden_layer_sizes: [4, 4, 5]
+			});
+			mlpClassifier.set('log level', 0); // 0 : nothing, 1 : info, 2 : warning.
+
 			for (var j = 0; j <= runMLPOneTime; j++) {
 				//if (j % 1 === 0) console.log('running ' + j)
 				var count = 0;
 				var tempTP = 0, tempFN = 0, tempFP = 0, tempTN = 0;
-
-				mlpClassifier = new ml.MLP({
-					input: dataArray.slice(0, 768 - 230),
-					label: labelArray.slice(0, 768 - 230),
-					n_ins: 8,
-					n_outs: 2,
-					hidden_layer_sizes: [4, 4, 5]
-				});
-				mlpClassifier.set('log level', 1); // 0 : nothing, 1 : info, 2 : warning.
 
 				//traning MLP
 				mlpClassifier.train({
@@ -261,53 +275,6 @@ csv.fromPath('data/pima-diabetes.csv')
 					epochs : 20000
 				});
 				
-				// write model
-				// fs.writeFile('/mlp', JSON.stringify(mlpClassifier), function(err) {
-				// 	if(err) {
-				// 		return console.log(err);
-				// 	}
-				// 	console.log("The file was saved!");
-				// }); 
-
-				// read model
-				// fs.readFile('/test', 'utf8', function (err, data) {
-				// 	if (err) {
-				// 		return console.log(err);
-				// 	}
-				// 	var detector = new ml.MLP({
-				// 		'input': [[1, 0], [0, 1]],
-				// 		'label': [[0, 1], [1, 0]],
-				// 		'n_ins': 2,
-				// 		'n_outs': 2,
-				// 		'hidden_layer_sizes': [5]
-				// 	});
-
-				// 	data = JSON.parse(data);
-				// 	// Then overwrite all properties with what is saved in data variable    
-				// 	detector.x = data.x; // comment out if you won't train
-				// 	detector.y = data.y; // comment out if you won't train
-				// 	detector.nLayers = data.nLayers;
-				// 	detector.settings = data.settings;
-				// 	detector.sigmoidLayers = new Array(data.sigmoidLayers.length);
-				// 	for (var i in data.sigmoidLayers) {
-				// 		// Here you cannot lie, use same values than in detector.settings
-				// 		// Create a HiddenLayer use its constructor to ensure we end with the correct type
-				// 		detector.sigmoidLayers[i] = new HiddenLayer({
-				// 			'n_ins': detector.settings['n_ins'],
-				// 			'n_outs': detector.settings['n_outs']
-				// 		});
-
-				// 		// restore all properties of each HiddenLayer
-				// 		for (var p in data.sigmoidLayers[i]) {
-				// 			detector.sigmoidLayers[i][p] = data.sigmoidLayers[i][p];
-				// 		}
-				// 	}
-				// 	console.log(detector.predict([dataArray[2]]))
-				// 	console.log(([labelArray[2]]))
-				// });
-
-				//console.log(JSON.stringify(mlpClassifier))
-
 				for (let i = 768 - 230; i < 768; i++) {
 					var y = mlpClassifier.predict([dataArray[i]]);
 					if (Number(labelArray[i][0]) > Number(labelArray[i][1])) {
@@ -354,6 +321,8 @@ csv.fromPath('data/pima-diabetes.csv')
 					}
 				}
 
+				console.log(count)
+
 				if (print) {
 					fs.writeFile('/mlp', JSON.stringify(mlpClassifier), function(err) {
 						if(err) {
@@ -366,9 +335,9 @@ csv.fromPath('data/pima-diabetes.csv')
 
 		if (runMLP >=0 ) {
 			console.log('alo')
-			var confusionMatrixLeave1 = crossValidation.leaveOneOut(MyClassifier2, choseData, douToSingle(choseLabel), {model: mlpClassifier});
-			var confusionMatrixFold5 = crossValidation.kFold(MyClassifier2, choseData, douToSingle(choseLabel), {model: mlpClassifier}, 5);
-			var confusionMatrixFold10 = crossValidation.kFold(MyClassifier2, choseData, douToSingle(choseLabel), {model: mlpClassifier}, 10);
+			// var confusionMatrixLeave1 = crossValidation.leaveOneOut(MyClassifier2, choseData, douToSingle(choseLabel), {model: mlpClassifier});
+			// var confusionMatrixFold5 = crossValidation.kFold(MyClassifier2, choseData, douToSingle(choseLabel), {model: mlpClassifier}, 5);
+			// var confusionMatrixFold10 = crossValidation.kFold(MyClassifier2, choseData, douToSingle(choseLabel), {model: mlpClassifier}, 10);
 			var precision = TP / (TP + FP);
 			var recall = TP / (TP + FN);
 			var f1 = 2 * precision * recall / (precision + recall);
@@ -379,12 +348,12 @@ csv.fromPath('data/pima-diabetes.csv')
 			console.log('TN:' + TN)
 			console.log('precision:' + precision.toFixed(2))
 			console.log('recall:' + recall.toFixed(2))
-			console.log('Leave 1 out')
-			console.log(confusionMatrixLeave1)
-			console.log('5 fold')
-			console.log(confusionMatrixFold5)
-			console.log('10 fold')
-			console.log(confusionMatrixFold10)
+			// console.log('Leave 1 out')
+			// console.log(confusionMatrixLeave1)
+			// console.log('5 fold')
+			// console.log(confusionMatrixFold5)
+			// console.log('10 fold')
+			// console.log(confusionMatrixFold10)
 			console.log(best1 / 230)
 			console.log(best2 / 230)
 		}
@@ -398,6 +367,7 @@ csv.fromPath('data/pima-diabetes.csv')
 		console.log('------------------------------------');
 		var runFuzzy = -1;
 		var runFuzzyOneTime = -1;
+		var runFuzzyCross = false;
 		var best1 = 0;
 		var best2 = 0;
 		var bestAccuracy = 0;
@@ -418,7 +388,7 @@ csv.fromPath('data/pima-diabetes.csv')
 		for (var l = 0; l <= runFuzzy; l++) {
 			preProcess();
 			labelArray =  douToSingle(labelArray);
-			//if (l % 10 === 0) console.log('running ' + l)
+			if (l % 10 === 0) console.log('running ' + l)
 			for (var j = 0; j <= runFuzzyOneTime; j++) {
 					
 				var clusters = figue.fcmeans(2, dataArray.slice(768 - 230, 768), 0.00000000001, 1.25) ;
@@ -501,9 +471,6 @@ csv.fromPath('data/pima-diabetes.csv')
 		//console.log(count)
 
 		if (runFuzzy >= 0) {
-			var confusionMatrixLeave1 = crossValidation.leaveOneOut(MyClassifier, choseData, choseLabel, {model: finalClusters});
-			var confusionMatrixFold5 = crossValidation.kFold(MyClassifier, choseData, choseLabel, {model: finalClusters}, 5);
-			var confusionMatrixFold10 = crossValidation.kFold(MyClassifier, choseData, choseLabel, {model: finalClusters}, 10);
 			var precision = TP / (TP + FP);
 			var recall = TP / (TP + FN);
 			var f1 = 2 * precision * recall / (precision + recall);
@@ -514,14 +481,36 @@ csv.fromPath('data/pima-diabetes.csv')
 			console.log('TN:' + TN)
 			console.log('precision:' + precision.toFixed(2))
 			console.log('recall:' + recall.toFixed(2))
-			console.log('Leave 1 out')
-			console.log(confusionMatrixLeave1)
-			console.log('5 fold')
-			console.log(confusionMatrixFold5)
-			console.log('10 fold')
-			console.log(confusionMatrixFold10)
+
 			console.log(best1 / 230)
 			console.log(best2 / 230)
+		}
+
+		if (runFuzzyCross) {
+			var crossRun = 100;
+			var accl1 = 0;
+			var accf5 = 0;
+			var accf10 = 0;
+			for (let i = 0; i < crossRun; i++) {
+				if (i % 10 === 0) console.log('cross: ' + i)
+
+				var confusionMatrixLeave1 = crossValidation.leaveOneOut(MyClassifier, oriData, oriLabel);
+				if (confusionMatrixLeave1.accuracy > accl1) accl1 = confusionMatrixLeave1.accuracy;
+
+				stratified(5)
+				var confusionMatrixFold5 = crossValidation.kFold(MyClassifier, dataArray, labelArray, null, 5);
+				if (confusionMatrixFold5.accuracy > accf5) accf5 = confusionMatrixFold5.accuracy;
+
+				stratified(10)
+				var confusionMatrixFold10 = crossValidation.kFold(MyClassifier, dataArray, labelArray, null, 10);
+				if (confusionMatrixFold10.accuracy > accf10) accf10 = confusionMatrixFold10.accuracy;
+			}
+			console.log('Leave 1 out')
+			console.log(accl1)
+			console.log('5 fold')
+			console.log(accf5)
+			console.log('10 fold')
+			console.log(accf10)
 		}
 
 		var runRandom = -1;
@@ -686,15 +675,15 @@ csv.fromPath('data/pima-diabetes.csv')
 		// });
 	});
 
-function preProcess() {
-	function shuffle(a, b = null) {
-		for (let i = a.length - 1; i > 0; i--) {
-			const j = Math.floor(Math.random() * (i + 1));
-			[a[i], a[j]] = [a[j], a[i]];
-			if (b !== null) [b[i], b[j]] = [b[j], b[i]];
-		}
+function shuffle(a, b = null) {
+	for (let i = a.length - 1; i > 0; i--) {
+		const j = Math.floor(Math.random() * (i + 1));
+		[a[i], a[j]] = [a[j], a[i]];
+		if (b !== null) [b[i], b[j]] = [b[j], b[i]];
 	}
+}
 
+function preProcess() {
 	// shuffle(posDataArray, posLabelArray);
 	// shuffle(nevDataArray, nevLabelArray);
 
@@ -739,6 +728,24 @@ function preProcess() {
 	// console.log(labelArray.length)
 }
 
+function stratified(k) {
+	dataArray = [];
+	labelArray = [];
+	var numPos = posDataArray.length;
+	var numNev = nevDataArray.length;
+	for (var i = 0; i < k ; i++) {
+		var data = [];
+		var label = [];
+		data = data.concat(posDataArray.slice(i * numPos / k, (i + 1) * numPos / k));
+		data = data.concat(nevDataArray.slice(i * numNev / k, (i + 1) * numNev / k));
+		label = label.concat(posLabelArray.slice(i * numPos / k, (i + 1) * numPos / k));
+		label = label.concat(nevLabelArray.slice(i * numNev / k, (i + 1) * numNev / k));
+		shuffle(data, label);
+		dataArray = dataArray.concat(data);
+		labelArray = labelArray.concat(label);
+	}
+}
+
 function douToSingle(labels) {
 	var newArray = labels.slice();
 	for (let i in newArray) {
@@ -756,12 +763,13 @@ class MyClassifier {
     this.options = options;
   }
   train(data, labels) {
-    this.model = this.options.model
+	this.model = figue.fcmeans(2, data, 0.00000000001, 1.25) ;
   }
   predict(testData) {
 		var prediction;
-    var dis1 = figue.euclidianDistance(testData[0], this.model.centroids[0]);
+    	var dis1 = figue.euclidianDistance(testData[0], this.model.centroids[0]);
 		var dis2 = figue.euclidianDistance(testData[0], this.model.centroids[1]);
+		// console.log(dis1)
 		if (dis1 > dis2) {
 			prediction = [1];
 		} else {

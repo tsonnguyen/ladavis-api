@@ -2,8 +2,8 @@ var database = require('./dbSetting');
 var db = database.db ;
 
 var prediction = require('./prediction');
-// var test = require('./test');
-// var test = require('./test2');
+//var test = require('./test');
+//var test = require('./test2');
 // var classifier = prediction.classifier;
 
 var constant = require('./defines.js');
@@ -277,9 +277,9 @@ function getFullAllPatients(req, res, next) {
 			listPatients[i].Glucose = -1;	
 			listPatients[i].BloodPressure = 72;
 			listPatients[i].SkinThickness = 21;
-			listPatients[i].Insulin = 156;
+			listPatients[i].Insulin = 80;
 			listPatients[i].BMI = -1;
-			listPatients[i].DiabetesPedigreeFunction = 0.472;
+			listPatients[i].DiabetesPedigreeFunction = 0.373;
 			listPatients[i].Age = -1;
 			listPatients[i].Outcome = 1;
 
@@ -345,6 +345,14 @@ function getFullAllPatients(req, res, next) {
 				listPatients[i].Age = listPatients[i].Age - 20;
 			} else if (listPatients[i].Age < 10) {
 				listPatients[i].Age = listPatients[i].Age + 30;
+			}
+
+			if (listPatients[i].gender === 'F') {
+				if (listPatients[i].Age > 27) {
+					listPatients[i].Pregnancies = 1
+				} else if (listPatients[i].Age > 30) {
+					listPatients[i].Pregnancies = 2;
+				}
 			}
 
 			delete listPatients[i].id;

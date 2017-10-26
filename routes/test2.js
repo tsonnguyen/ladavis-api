@@ -17,11 +17,19 @@ csv.fromPath('data/mimic-test.csv')
 		var label = csvRow[csvRow.length - 1];
 		csvRow.splice(-1, 1);
 
+		csvRow = [
+			csvRow[0],
+			csvRow[1],
+			csvRow[2],
+			csvRow[5],
+			csvRow[7]
+		]
+
 		dataArray.push(csvRow.slice());
 		labelArray.push(label);
 	})
 	.on('end', function () {
-		fs.readFile('/mlpnewest', 'utf8', function (err, data) {
+		fs.readFile('/mlp73', 'utf8', function (err, data) {
 			if (err) {
 				return console.log(err);
 			}
