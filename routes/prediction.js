@@ -10,16 +10,16 @@ var bayes = require('bayes');
 var bayesClassifier = bayes({
 	tokenizer: function (data) { return data; }
 });
-var figue = require('./figue').figue;
-var rdForest = require('./randomforest').rdForest;
+var figue = require('../lib/figue').figue;
+var rdForest = require('../lib/randomforest').rdForest;
 var RandomForestClassifier = require('random-forest-classifier').RandomForestClassifier;
 var crossValidation = require('ml-cross-validation');
-var csvWriter = require('csv-write-stream')
-var writer = csvWriter()
+var csvWriter = require('csv-write-stream');
+var writer = csvWriter();
 
 var csv = require('fast-csv');
 
-var labelMode = 'sing';
+var labelMode = 'dou';
 
 var correctArray = [3, 117, 72, 23, 30.5, 32, 0.3725, 29];
 var correctArray2 = [3.845, 120.9, 69.1, 20.54, 79.8, 32, 0.4719, 33.24];
@@ -105,14 +105,14 @@ csv.fromPath('data/pima-diabetes.csv')
 		// 	csvRow[2],
 		// 	csvRow[5],
 		// 	csvRow[7]
-		// ]
+		// ];
 
-		// csvRow = [
-		// 	csvRow[1],
-		// 	csvRow[4],
-		// 	csvRow[5],
-		// 	csvRow[7]
-		// ]
+		csvRow = [
+			csvRow[1],
+			csvRow[4],
+			csvRow[5],
+			csvRow[7]
+		];
 
 		// var traningData;
 		// traningData = csvRow;
@@ -133,7 +133,7 @@ csv.fromPath('data/pima-diabetes.csv')
 				deg: Number(csvRow[6]),
 				age: Number(csvRow[7]),
 				outcome: 'no'
-			})
+			});
 		} else {
 			posDataArray.push(csvRow.slice());
 			randomPosArray.push({
@@ -146,7 +146,7 @@ csv.fromPath('data/pima-diabetes.csv')
 				deg: Number(csvRow[6]),
 				age: Number(csvRow[7]),
 				outcome: 'yes'
-			})
+			});
 		}
 
 		//labelArray.push(label);
@@ -207,40 +207,6 @@ csv.fromPath('data/pima-diabetes.csv')
 
 	.on('end', function () {
 
-		// var arrayPatient = [];
-		// for (let kkk = 8000; kkk <= 0; kkk++) {
-		// 	if (arrayPatient.length === 200) break;
-		// 	var options = {
-		// 		host: 'localhost',
-		// 		port: 4000,
-		// 		path: '/ladavis/rest-api/patient?id=' + kkk,
-		// 		method: 'GET'
-		// 	};
-			
-		// 	http.request(options, function(res) {
-		// 		res.on('data', function (chunk) {
-		// 			var response = JSON.parse(chunk.toString());
-		// 			if (response.status !== 'fail') {
-		// 				var data = response.data;
-		// 				if (data.info.height !== 0 && data.info.weight !== 0 
-		// 				&& data.diastolic.length !== 0 && data.glucoseBlood.length !== 0) {
-		// 					arrayPatient.push(kkk);
-		// 				}
-		// 			}
-		// 		});
-		// 	}).end();
-		// }
-		
-		// setTimeout(function() {
-		// 	fs.writeFile('/patient', JSON.stringify(arrayPatient), function(err) {
-		// 		if(err) {
-		// 			console.log('bugggg')
-		// 			return console.log(err);
-		// 		}
-		// 	}); 
-		// }, 10000);
-		
-
 		console.log('Nev: ' + nevDataArray.length);
 		console.log('Pos: ' + posDataArray.length);
 
@@ -248,26 +214,28 @@ csv.fromPath('data/pima-diabetes.csv')
 		//init MLP
 		var runMLP = -1;
 		var runMLPOneTime = -1;
+		var runMLPCross = false;
 		var best1 = 0;
 		var best2 = 0;
 		var TP = 0, FN = 0, FP = 0, TN = 0;
 		for (var l = 0; l <= runMLP; l++) {
 			preProcess();
-			if (l % 1 === 0) console.log('running ' + l)
-
-			var mlpClassifier = new ml.MLP({
-				input: dataArray.slice(0, 768 - 230),
-				label: labelArray.slice(0, 768 - 230),
-				n_ins: 5,
-				n_outs: 2,
-				hidden_layer_sizes: [4, 4, 5]
-			});
-			mlpClassifier.set('log level', 0); // 0 : nothing, 1 : info, 2 : warning.
+			if (l % 1 === 0) console.log('running ' + l);
 
 			for (var j = 0; j <= runMLPOneTime; j++) {
 				//if (j % 1 === 0) console.log('running ' + j)
 				var count = 0;
 				var tempTP = 0, tempFN = 0, tempFP = 0, tempTN = 0;
+
+				var mlpClassifier = new ml.MLP({
+					input: dataArray.slice(0, 768 - 230),
+					label: labelArray.slice(0, 768 - 230),
+					n_ins: 4,
+					n_outs: 2,
+					hidden_layer_sizes: [8, 8, 8]
+				});
+
+				mlpClassifier.set('log level', 0); // 0 : nothing, 1 : info, 2 : warning.
 
 				//traning MLP
 				mlpClassifier.train({
@@ -321,41 +289,67 @@ csv.fromPath('data/pima-diabetes.csv')
 					}
 				}
 
-				console.log(count)
-
 				if (print) {
-					fs.writeFile('/mlp', JSON.stringify(mlpClassifier), function(err) {
+					fs.writeFile('/mlpp', JSON.stringify(mlpClassifier), function(err) {
 						if(err) {
 							return console.log(err);
 						}
 					}); 
 				}
 			}
+			console.log(best1);
 		}
 
 		if (runMLP >=0 ) {
-			console.log('alo')
+			console.log('alo');
 			// var confusionMatrixLeave1 = crossValidation.leaveOneOut(MyClassifier2, choseData, douToSingle(choseLabel), {model: mlpClassifier});
 			// var confusionMatrixFold5 = crossValidation.kFold(MyClassifier2, choseData, douToSingle(choseLabel), {model: mlpClassifier}, 5);
 			// var confusionMatrixFold10 = crossValidation.kFold(MyClassifier2, choseData, douToSingle(choseLabel), {model: mlpClassifier}, 10);
 			var precision = TP / (TP + FP);
 			var recall = TP / (TP + FN);
 			var f1 = 2 * precision * recall / (precision + recall);
-			console.log('done')
-			console.log('TP:' + TP)
-			console.log('FN:' + FN)
-			console.log('FP:' + FP)
-			console.log('TN:' + TN)
-			console.log('precision:' + precision.toFixed(2))
-			console.log('recall:' + recall.toFixed(2))
+			console.log('done');
+			console.log('TP:' + TP);
+			console.log('FN:' + FN);
+			console.log('FP:' + FP);
+			console.log('TN:' + TN);
+			console.log('precision:' + precision.toFixed(2));
+			console.log('recall:' + recall.toFixed(2));
 			// console.log('Leave 1 out')
 			// console.log(confusionMatrixLeave1)
 			// console.log('5 fold')
 			// console.log(confusionMatrixFold5)
 			// console.log('10 fold')
 			// console.log(confusionMatrixFold10)
-			console.log(best1 / 230)
-			console.log(best2 / 230)
+			console.log(best1 / 230);
+			console.log(best2 / 230);
+		}
+
+		if (runMLPCross) {
+			var crossRun = 0;
+			var accl1 = 0;
+			var accf5 = 0;
+			var accf10 = 0;
+			for (let i = 0; i < crossRun; i++) {
+				if (i % 10 === 0) console.log('cross: ' + i);
+
+				var confusionMatrixLeave1 = crossValidation.leaveOneOut(MyClassifier2, oriData, oriLabel);
+				if (confusionMatrixLeave1.accuracy > accl1) accl1 = confusionMatrixLeave1.accuracy;
+
+				stratified(5);
+				var confusionMatrixFold5 = crossValidation.kFold(MyClassifier2, dataArray, labelArray, null, 5);
+				if (confusionMatrixFold5.accuracy > accf5) accf5 = confusionMatrixFold5.accuracy;
+
+				stratified(10);
+				confusionMatrixFold10 = crossValidation.kFold(MyClassifier2, dataArray, labelArray, null, 10);
+				if (confusionMatrixFold10.accuracy > accf10) accf10 = confusionMatrixFold10.accuracy;
+			}
+			console.log('Leave 1 out');
+			console.log(accl1);
+			console.log('5 fold');
+			console.log(accf5);
+			console.log('10 fold');
+			console.log(accf10);
 		}
 	
 		//shuffle(dataArray)
@@ -388,7 +382,7 @@ csv.fromPath('data/pima-diabetes.csv')
 		for (var l = 0; l <= runFuzzy; l++) {
 			preProcess();
 			labelArray =  douToSingle(labelArray);
-			if (l % 10 === 0) console.log('running ' + l)
+			if (l % 10 === 0) console.log('running ' + l);
 			for (var j = 0; j <= runFuzzyOneTime; j++) {
 					
 				var clusters = figue.fcmeans(2, dataArray.slice(768 - 230, 768), 0.00000000001, 1.25) ;
@@ -474,43 +468,43 @@ csv.fromPath('data/pima-diabetes.csv')
 			var precision = TP / (TP + FP);
 			var recall = TP / (TP + FN);
 			var f1 = 2 * precision * recall / (precision + recall);
-			console.log('done')
-			console.log('TP:' + TP)
-			console.log('FN:' + FN)
-			console.log('FP:' + FP)
-			console.log('TN:' + TN)
-			console.log('precision:' + precision.toFixed(2))
-			console.log('recall:' + recall.toFixed(2))
+			console.log('done');
+			console.log('TP:' + TP);
+			console.log('FN:' + FN);
+			console.log('FP:' + FP);
+			console.log('TN:' + TN);
+			console.log('precision:' + precision.toFixed(2));
+			console.log('recall:' + recall.toFixed(2));
 
-			console.log(best1 / 230)
-			console.log(best2 / 230)
+			console.log(best1 / 230);
+			console.log(best2 / 230);
 		}
 
 		if (runFuzzyCross) {
-			var crossRun = 100;
+			var crossRun = 0;
 			var accl1 = 0;
 			var accf5 = 0;
 			var accf10 = 0;
 			for (let i = 0; i < crossRun; i++) {
-				if (i % 10 === 0) console.log('cross: ' + i)
+				if (i % 10 === 0) console.log('cross: ' + i);
 
-				var confusionMatrixLeave1 = crossValidation.leaveOneOut(MyClassifier, oriData, oriLabel);
-				if (confusionMatrixLeave1.accuracy > accl1) accl1 = confusionMatrixLeave1.accuracy;
+				// var confusionMatrixLeave1 = crossValidation.leaveOneOut(MyClassifier, oriData, oriLabel);
+				// if (confusionMatrixLeave1.accuracy > accl1) accl1 = confusionMatrixLeave1.accuracy;
 
-				stratified(5)
+				stratified(5);
 				var confusionMatrixFold5 = crossValidation.kFold(MyClassifier, dataArray, labelArray, null, 5);
 				if (confusionMatrixFold5.accuracy > accf5) accf5 = confusionMatrixFold5.accuracy;
 
-				stratified(10)
+				stratified(10);
 				var confusionMatrixFold10 = crossValidation.kFold(MyClassifier, dataArray, labelArray, null, 10);
 				if (confusionMatrixFold10.accuracy > accf10) accf10 = confusionMatrixFold10.accuracy;
 			}
-			console.log('Leave 1 out')
-			console.log(accl1)
-			console.log('5 fold')
-			console.log(accf5)
-			console.log('10 fold')
-			console.log(accf10)
+			console.log('Leave 1 out');
+			console.log(accl1);
+			console.log('5 fold');
+			console.log(accf5);
+			console.log('10 fold');
+			console.log(accf10);
 		}
 
 		var runRandom = -1;
@@ -528,7 +522,7 @@ csv.fromPath('data/pima-diabetes.csv')
 		for (var l = 0; l <= runRandom; l++) {
 			preProcess();
 			if (l % 1 === 0) {
-				console.log('running ' + l)
+				console.log('running ' + l);
 			}
 			for (var j = 0; j <= runRandomOneTime; j++) {
 				var count = 0;
@@ -560,27 +554,27 @@ csv.fromPath('data/pima-diabetes.csv')
 				var print = false;
 				if (count < (230 / 2)) {
 					//if (tempTP === 0 || tempTP > tempFN) {
-						if ((best1 === 0 && best2 === 0) || (count < best1 && count < 230 - best2)) {
-							best1 = count;
-							best2 = 230 - count;
-							print = true;
-							TN = tempTN;
-							FN = tempFN;
-							TP = tempTP;
-							FP = tempFP;
-						}
+					if ((best1 === 0 && best2 === 0) || (count < best1 && count < 230 - best2)) {
+						best1 = count;
+						best2 = 230 - count;
+						print = true;
+						TN = tempTN;
+						FN = tempFN;
+						TP = tempTP;
+						FP = tempFP;
+					}
 					//}
 				} else if (count >= (230 / 2)) {
 					//if (tempTP === 0 || tempTP > tempFN) {
-						if ((best1 === 0 && best2 === 0) || (count > best2 && count > 230 - best1)) {
-							best2 = count;
-							best1 = 230 - count;
-							print = true;
-							TN = tempTN;
-							FN = tempFN;
-							TP = tempTP;
-							FP = tempFP;
-						}
+					if ((best1 === 0 && best2 === 0) || (count > best2 && count > 230 - best1)) {
+						best2 = count;
+						best1 = 230 - count;
+						print = true;
+						TN = tempTN;
+						FN = tempFN;
+						TP = tempTP;
+						FP = tempFP;
+					}
 					//}
 				}
 
@@ -600,16 +594,16 @@ csv.fromPath('data/pima-diabetes.csv')
 			var precision = TP / (TP + FP);
 			var recall = TP / (TP + FN);
 			var f1 = 2 * precision * recall / (precision + recall);
-			console.log('done')
-			console.log('TP:' + TP)
-			console.log('FN:' + FN)
-			console.log('FP:' + FP)
-			console.log('TN:' + TN)
-			console.log('precision:' + precision.toFixed(2))
-			console.log('recall:' + recall.toFixed(2))
-			console.log('f1:' + f1.toFixed(2))
-			console.log(count / 230)
-			console.log((230 - count) / 230)
+			console.log('done');
+			console.log('TP:' + TP);
+			console.log('FN:' + FN);
+			console.log('FP:' + FP);
+			console.log('TN:' + TN);
+			console.log('precision:' + precision.toFixed(2));
+			console.log('recall:' + recall.toFixed(2));
+			console.log('f1:' + f1.toFixed(2));
+			console.log(count / 230);
+			console.log((230 - count) / 230);
 		}
 
 		var rf = new RandomForestClassifier({
@@ -759,13 +753,13 @@ function douToSingle(labels) {
 }
 
 class MyClassifier {
-  constructor(options) {
-    this.options = options;
-  }
-  train(data, labels) {
-	this.model = figue.fcmeans(2, data, 0.00000000001, 1.25) ;
-  }
-  predict(testData) {
+	constructor(options) {
+		this.options = options;
+	}
+	train(data, labels) {
+		this.model = figue.fcmeans(2, data, 0.00000000001, 1.25) ;
+	}
+	predict(testData) {
 		var prediction;
     	var dis1 = figue.euclidianDistance(testData[0], this.model.centroids[0]);
 		var dis2 = figue.euclidianDistance(testData[0], this.model.centroids[1]);
@@ -775,18 +769,34 @@ class MyClassifier {
 		} else {
 			prediction = [0];
 		}
-    return prediction;
-  }
+		return prediction;
+	}
 }
 
 class MyClassifier2 {
-  constructor(options) {
-    this.options = options;
-  }
-  train(data, labels) {
-    this.model = this.options.model
-  }
-  predict(testData) {
+	constructor(options) {
+		this.options = options;
+	}
+	train(data, labels) {
+		var mlpClassifier = new ml.MLP({
+			input: data,
+			label: labels,
+			n_ins: 5,
+			n_outs: 2,
+			hidden_layer_sizes: [8, 8, 8]
+		});
+
+		mlpClassifier.set('log level', 0); // 0 : nothing, 1 : info, 2 : warning.
+
+		//traning MLP
+		mlpClassifier.train({
+			lr : 0.01,
+			epochs : 20000
+		});
+
+		this.model = mlpClassifier;
+	}
+	predict(testData) {
 		var prediction;
 		var y = this.model.predict([testData[0]]);
 
@@ -795,8 +805,8 @@ class MyClassifier2 {
 		} else {
 			prediction = [0];
 		}
-    return prediction;
-  }
+		return prediction;
+	}
 }
 
 

@@ -2,6 +2,7 @@ var database = require('./dbSetting');
 var db = database.db ;
 
 var prediction = require('./prediction');
+var predict = require('./predict');
 //var test = require('./test');
 //var test = require('./test2');
 // var classifier = prediction.classifier;
@@ -75,7 +76,7 @@ function getPatient(req, res, next) {
 				+ 'order by startdate asc'
 				, [req.query.id, constant.simva, constant.lisin, constant.RR, constant.acar
 				, constant.met, constant.Glit, constant.DPP4, constant.SH]),
-			t.any('select chartdate, category, description, text ' 
+			t.any('select chartdate as time, category, description, text ' 
 				+ 'from noteevents '
 				+ 'where subject_id = $1 '
 				+ 'order by chartdate asc'
@@ -107,17 +108,17 @@ function getPatient(req, res, next) {
 			var result = {
 				info: {
 					id: req.query.id,
-					dob: (new Date()).getFullYear() - (new Date(listInfoItems[0].dob)).getFullYear() + shiftYear,
+					age: (new Date()).getFullYear() - (new Date(listInfoItems[0].dob)).getFullYear() + shiftYear,
 					gender: (listInfoItems[0].gender === 'M') ? 'Male' : 'Female',
 					admittime: (listAdminssionItems[0].admittime),
 					dischtime: (listAdminssionItems[listAdminssionItems.length-1].dischtime),
 					deathtime: (listAdminssionItems[0].deathtime),
 					diagnosis: listAdminssionItems[0].diagnosis.toLowerCase().capitalize(),
-					religion: listAdminssionItems[0].religion.toLowerCase().capitalize(),
-					height: 0,
-					weight: 0,
-					pregnant: 0
+					religion: listAdminssionItems[0].religion.toLowerCase().capitalize()
 				},
+				predict: [],
+				height: [],
+				weight: [],
 				systolic: [],
 				diastolic: [],
 				hemoA1c: [],
@@ -135,8 +136,18 @@ function getPatient(req, res, next) {
 				Glit: [],
 				DPP4: [],
 				SH: [],
-				//notes: listNoteItems
+				notes: listNoteItems
 			};
+
+			if (result.info.age >= 100) {
+				result.info.age = result.info.age - 30;
+			} else if (result.info.age >= 70) {
+				result.info.age = result.info.age - 20;
+			} else if (result.info.age <= 20) {
+				result.info.age = result.info.age + 20;
+			} else if (result.info.age <= 10) {
+				result.info.age = result.info.age + 30;
+			}
 
 			for (var i in listItems){
 				if (new Date(listItems[i].time) > new Date(result.info.dischtime)) {
@@ -153,13 +164,38 @@ function getPatient(req, res, next) {
 						value: listItems[i].value
 					});
 				} else if (listItems[i].itemid == constant.weight) {
-					result.info.weight = listItems[i].value;
+					result.weight.push({
+						time: listItems[i].time, 
+						value: listItems[i].value
+					});
 				} else if (listItems[i].itemid == constant.height) {
-					result.info.height = listItems[i].value;
-				} else if (listItems[i].itemid == constant.pregnant) {
-					result.info.pregnant = listItems[i].value;
-				}
+					result.height.push({
+						time: listItems[i].time, 
+						value: listItems[i].value
+					});
+				} 
 			}  
+
+			if (result.height.length === 0) {
+				if (result.info.gender === 'Female') {
+					result.height.push({
+						time: result.info.admittime, 
+						value: 166
+					});
+				} else {
+					result.height.push({
+						time: result.info.admittime, 
+						value: 177
+					});
+				}
+			}
+
+			if (result.weight.length === 0) {
+				result.weight.push({
+					time: result.info.admittime, 
+					value: 57.5
+				});
+			}
 
 			for (let i in listLabitems){
 				if (new Date(listLabitems[i].time) > new Date(result.info.dischtime)) {
@@ -221,7 +257,152 @@ function getPatient(req, res, next) {
 					break;
 				}
 			}  
+
+			var timeStemp = [];
+			for (let i in result.height) {
+				if (isNaN(Number(i))) continue;
+				timeStemp.push({
+					time: result.height[i].time
+				});
+			}
+
+			var varArray = [result.weight, result.diastolic, result.glucoseBlood];
+			for (let run in varArray) {
+				for (let i in varArray[run]) {
+					if (isNaN(Number(i))) continue;
+					let tempTime = new Date(varArray[run][i].time);
+					for (let j in timeStemp) {
+						let temp = new Date(timeStemp[j].time);
+						if (tempTime > temp) {
+							timeStemp.splice(Number(j), 0, {
+								time: varArray[run][i].time
+							});
+							break;
+						}
+					}
+				}
+			}
+
+			timeStemp = timeStemp.reverse();			
+
+			for (let run in timeStemp) {
+				timeStemp[run].age = Number(result.info.age);
+				timeStemp[run].skin = 21;
+				timeStemp[run].predigree = 0.373;
+				timeStemp[run].insulin = 80;
+				timeStemp[run].pregnant = 0;
+
+				if (result.height.length === 1) {
+					timeStemp[run].height = result.height[0].value;
+				} else {
+					for (let i in result.height) {
+						var temp1 = new Date(result.height[i].time);
+						var temp2 = new Date(timeStemp[run].time);
+						if (temp1 == temp2) {
+							timeStemp[run].height = Number(result.height[i].value);
+							break;
+						} else if (temp1 > temp2) {
+							if (Number(i) === 0) {
+								timeStemp[run].height = Number(result.height[i].value);
+							}	else if (Number(i) !== (result.height.length - 1)) {
+								let temp3 = new Date(result.height[Number(i) - 1].time);
+								let a = (Number(result.height[Number(i) - 1].value) - Number(result.height[i].value)) / (temp3.getTime() - temp1.getTime());
+								let b = Number(result.height[i].value) - a *  temp1.getTime();
+								timeStemp[run].height = Math.round(a * temp2.getTime() + b);
+							}
+							break;
+						}
+					}
+					if (!timeStemp[run].height) timeStemp[run].height = Number(result.height[result.height.length - 1].value);
+				}
 			
+				if (result.weight.length === 1) {
+					timeStemp[run].weight = result.weight[0].value;
+				} else {
+					for (let i in result.weight) {
+						let temp1 = new Date(result.weight[i].time);
+						let temp2 = new Date(timeStemp[run].time);
+						if (temp1 == temp2) {
+							timeStemp[run].weight = Number(result.weight[i].value);
+							break;
+						} else if (temp1 > temp2) {
+							if (Number(i) === 0) {
+								timeStemp[run].weight = Number(result.weight[i].value);
+							}	else if (Number(i) !== (result.weight.length - 1)) {
+								let temp3 = new Date(result.weight[Number(i) - 1].time);
+								let a = (Number(result.weight[Number(i) - 1].value) - Number(result.weight[i].value)) / (temp3.getTime() - temp1.getTime());
+								let b = Number(result.weight[i].value) - a *  temp1.getTime();
+								timeStemp[run].weight = Math.round(a * temp2.getTime() + b);
+							}
+							break;
+						}
+					}
+					if (!timeStemp[run].weight) timeStemp[run].weight = Number(result.weight[result.weight.length - 1].value);
+				}
+
+				if (result.diastolic.length === 1) {
+					timeStemp[run].diastolic = result.diastolic[0].value;
+				} else {
+					for (let i in result.diastolic) {
+						let temp1 = new Date(result.diastolic[i].time);
+						let temp2 = new Date(timeStemp[run].time);
+						if (temp1 == temp2) {
+							timeStemp[run].diastolic = Number(result.diastolic[i].value);
+							break;
+						} else if (temp1 > temp2) {
+							if (Number(i) === 0) {
+								timeStemp[run].diastolic = Number(result.diastolic[i].value);
+							}	else if (Number(i) !== (result.diastolic.length - 1)) {
+								let temp3 = new Date(result.diastolic[Number(i) - 1].time);
+								let a = (Number(result.diastolic[Number(i) - 1].value) - Number(result.diastolic[i].value)) / (temp3.getTime() - temp1.getTime());
+								let b = Number(result.diastolic[i].value) - a *  temp1.getTime();
+								timeStemp[run].diastolic = Math.round(a * temp2.getTime() + b);
+							}
+							break;
+						}
+					}
+					if (!timeStemp[run].diastolic) timeStemp[run].diastolic = Number(result.diastolic[result.diastolic.length - 1].value);
+				}
+
+				if (result.glucoseBlood.length === 1) {
+					timeStemp[run].glucoseBlood = result.glucoseBlood[0].value;
+				} else {
+					for (let i in result.glucoseBlood) {
+						let temp1 = new Date(result.glucoseBlood[i].time);
+						let temp2 = new Date(timeStemp[run].time);
+						if (temp1 == temp2) {
+							timeStemp[run].glucose = Number(result.glucoseBlood[i].value);
+							break;
+						} else if (temp1 > temp2) {
+							if (Number(i) === 0) {
+								timeStemp[run].glucose = Number(result.glucoseBlood[i].value);
+							}	else if (Number(i) !== (result.glucoseBlood.length - 1)) {
+								let temp3 = new Date(result.glucoseBlood[Number(i) - 1].time);
+								let a = (Number(result.glucoseBlood[Number(i) - 1].value) - Number(result.glucoseBlood[i].value)) / (temp3.getTime() - temp1.getTime());
+								let b = Number(result.glucoseBlood[i].value) - a *  temp1.getTime();
+								timeStemp[run].glucose = Math.round(a * temp2.getTime() + b);
+							}
+							break;
+						}
+					}
+					if (!timeStemp[run].glucose) timeStemp[run].glucose = Number(result.glucoseBlood[result.glucoseBlood.length - 1].value);
+				}
+			}
+			
+			result.predict = predict.predictFCM(timeStemp, 5);
+			result.bmi = [];
+			for (let i in timeStemp) {
+				if (timeStemp[i].time) {
+					result.bmi.push({
+						time: timeStemp[i].time,
+						value: (timeStemp[i].weight / (timeStemp[i].height * timeStemp[i].height / 10000)).toFixed(2),
+					});
+				}
+			}
+
+			delete result.weight;
+			delete result.height;
+
 			res.status(200)
 				.json({
 					status: 'success',
@@ -239,13 +420,6 @@ function getPatient(req, res, next) {
 		return next(error);
 	});
 }
-
-// t.any('select itemid, value, charttime as time ' 
-// + 'from chartevents '
-// + 'where subject_id = $1 ' 
-// + 'and (itemid = $2 or itemid = $3 or itemid = $4 or itemid = $5 or itemid = $6) '
-// + 'order by charttime asc'
-// , [req.query.id, constant.NBPsystolic, constant.NBPdiastolic, constant.weight, constant.height, constant.pregnant]),
 
 function getFullAllPatients(req, res, next) {
 	db.task('get-everything', t => {
@@ -349,7 +523,7 @@ function getFullAllPatients(req, res, next) {
 
 			if (listPatients[i].gender === 'F') {
 				if (listPatients[i].Age > 27) {
-					listPatients[i].Pregnancies = 1
+					listPatients[i].Pregnancies = 1;
 				} else if (listPatients[i].Age > 30) {
 					listPatients[i].Pregnancies = 2;
 				}

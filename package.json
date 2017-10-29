@@ -4,7 +4,11 @@
   "private": true,
   "scripts": {
     "start": "set PORT=4000 && nodemon ./bin/www",
-    "start:training": "set PORT=3333 && node ./bin/www"
+    "start:training": "set PORT=3333 && node ./bin/www",
+    "start:training1": "set PORT=3334 && node ./bin/www",
+    "start:training2": "set PORT=3335 && node ./bin/www",
+    "test:fuzzy": "node ./mimic_test/fuzzycmeans.js",
+    "test:mlpnn": "node ./mimic_test/mlpnn.js"
   },
   "dependencies": {
     "bayes": "0.0.7",
