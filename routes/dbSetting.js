@@ -11,7 +11,7 @@ var dbInfo = {
 	dbname: 'mimic'
 };
 var connectionString = 'postgres://' + dbInfo.username + ':' + dbInfo.password 
-											+ '@localhost:5432/' + dbInfo.dbname;
+											+ '@127.0.0.1:5432/' + dbInfo.dbname;
 var db = pgp(connectionString);
 
 module.exports = {

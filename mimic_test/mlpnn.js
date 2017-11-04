@@ -6,6 +6,7 @@ var HiddenLayer = require('machine_learning/lib/HiddenLayer');
 
 var dataArray = [];
 var labelArray = [];
+var numOfFeatures = Number(process.argv[2]);
 
 console.log('running');
 
@@ -20,19 +21,34 @@ csv.fromPath('data/new-mimic-test.csv')
 		var label = csvRow[csvRow.length - 1];
 		csvRow.splice(-1, 1);
 
-		// csvRow = [
-		// 	csvRow[0],
-		// 	csvRow[1],
-		// 	csvRow[2],
-		// 	csvRow[5],
-		// 	csvRow[7]
-		// ]
+		if (numOfFeatures === 4) {
+			csvRow = [
+				csvRow[1],
+				csvRow[4],
+				csvRow[5],
+				csvRow[7]
+			];
+		} else if (numOfFeatures === 5) {
+			csvRow = [
+				csvRow[0],
+				csvRow[1],
+				csvRow[2],
+				csvRow[5],
+				csvRow[7]
+			];
+		} 
 
 		dataArray.push(csvRow.slice());
 		labelArray.push(label);
 	})
 	.on('end', function () {
-		var folderName = 8 + '-features';
+		if (numOfFeatures !== 4 && numOfFeatures !== 5 && numOfFeatures !== 8) {
+			console.log('Invalid number of features (4, 5 or 8)');
+			console.log('\n');
+			return;
+		}
+
+		var folderName = numOfFeatures + '-features';
 
 		fs.readFile(path.resolve('./predict_models/' + folderName + '/mlpnn.model'), 'utf8', function (err, data) {
 			if (err) { return console.log(err); }
@@ -70,7 +86,7 @@ csv.fromPath('data/new-mimic-test.csv')
 				var dis1 = predict[0];
 				var dis2 = predict[1];
   
-				if (Number(labelArray[i]) === 1) {
+				if (Number(labelArray[i]) === 0) {
 					if (dis1 > dis2) {
 						count++;
 						TN++;
@@ -99,7 +115,7 @@ csv.fromPath('data/new-mimic-test.csv')
 			console.log('precision:' + precision.toFixed(2));
 			console.log('recall:' + recall.toFixed(2));
 			console.log('f1-measure:' + f1.toFixed(2));
-			console.log('accuracy ' + (count / 222).toFixed(2));
+			console.log('accuracy ' + (count / dataArray.length).toFixed(2));
 			console.log('\n');
 		});
 	});

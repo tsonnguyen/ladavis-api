@@ -47,7 +47,7 @@ function predictFCM(dataArray, numOfFeatures){
 		var dis1 = figue.euclidianDistance(clusters[0], inputData);
 		var dis2 = figue.euclidianDistance(clusters[1], inputData);
 
-		if (dis1 > dis2) {
+		if (dis1 > dis2 && dataArray[i].time) {
 			result.push(dataArray[i].time);
 		}
 	}
@@ -92,7 +92,7 @@ function predictNN(dataArray, numOfFeatures){
 		var dis1 = predict[0];
 		var dis2 = predict[1];
 
-		if (dis1 < dis2) {
+		if (dis1 < dis2 && dataArray[i].time) {
 			result.push(dataArray[i].time);
 		}
 	}
