@@ -7,6 +7,8 @@ var dataArray = [];
 var labelArray = [];
 var numOfFeatures = Number(process.argv[2]);
 
+console.log('FUZZY C-MEANS MIMIC TESTING\n');
+
 csv.fromPath('data/new-mimic-test.csv')
 	.on('data', function (csvRow) {
 		if (isNaN(Number(csvRow[0]))) return;

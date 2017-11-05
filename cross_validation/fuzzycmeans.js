@@ -1,5 +1,3 @@
-var fs = require('fs');
-var path = require('path');
 var csv = require('fast-csv');
 var figue = require('../lib/figue').figue;
 
@@ -15,7 +13,7 @@ var numOfTraining = Number(process.argv[4]);
 var numOfFold = Number(process.argv[5]);
 var isDisplayLog = (process.argv[6] === 'true') ? true : false;
 
-console.log('training');
+console.log('FUZZY C-MEANS CROSS VALIDATING\n');
 
 csv.fromPath('data/pima-diabetes.csv')
 	.on('data', function (csvRow) {
@@ -137,7 +135,7 @@ csv.fromPath('data/pima-diabetes.csv')
 								subFN = tempFN;
 								subTP = tempTP;
 								subFP = tempFP;
-								if (isDisplayLog) console.log('\t\tPicked: ' + best2/trainingLength)
+								if (isDisplayLog) console.log('\t\tPicked: ' + best2/trainingLength);
 							}
 						}
 					} else if (count >= (trainingLength / 2)) {
@@ -149,7 +147,7 @@ csv.fromPath('data/pima-diabetes.csv')
 								subFN = tempFN;
 								subTP = tempTP;
 								subFP = tempFP;
-								if (isDisplayLog) console.log('\t\tPicked: ' + best2/trainingLength)
+								if (isDisplayLog) console.log('\t\tPicked: ' + best2/trainingLength);
 							}
 						}
 					}
@@ -186,9 +184,9 @@ csv.fromPath('data/pima-diabetes.csv')
 		var f1 = 2 * precision * recall / (precision + recall);
 		console.log('-----------------------------');
 		console.log('done');
-		console.log('total: ' + (TP + FN + FP + TN))
-		console.log('total positive: ' + (TP + FN))
-		console.log('total negative: ' + (FP + TN))
+		console.log('total: ' + (TP + FN + FP + TN));
+		console.log('total positive: ' + (TP + FN));
+		console.log('total negative: ' + (FP + TN));
 		console.log('TP: ' + TP);
 		console.log('FN: ' + FN);
 		console.log('FP: ' + FP);

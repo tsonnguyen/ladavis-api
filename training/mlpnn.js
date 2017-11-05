@@ -1,7 +1,6 @@
 var fs = require('fs');
-var path = require('path');
+var ml = require('machine_learning');
 var csv = require('fast-csv');
-var figue = require('../lib/figue').figue;
 
 var stratifiyData =  require('../lib/dataTransfrom').stratifiyData;
 
@@ -13,7 +12,7 @@ var numOfFeatures = Number(process.argv[2]);
 var numOfDataSet = Number(process.argv[3]);
 var numOfTraining = Number(process.argv[4]);
 
-console.log('TRAINING FUZZY C-MEANS\n');
+console.log('TRAINING FUZZY CMEAN\n');
 
 csv.fromPath('data/pima-diabetes.csv')
 	.on('data', function (csvRow) {
@@ -45,10 +44,10 @@ csv.fromPath('data/pima-diabetes.csv')
 
 		if (Number(label) === 0) {
 			negDataArray.push(csvRow.slice());
-			negLabelArray.push(0);
+			negLabelArray.push([0, 1]);
 		} else {
 			posDataArray.push(csvRow.slice());
-			posLabelArray.push(1);
+			posLabelArray.push([1, 0]);
 		}
 	})
 	.on('end', function () {
@@ -58,7 +57,7 @@ csv.fromPath('data/pima-diabetes.csv')
 			return;
 		}
 
-		var finalClusters;
+		var finalMlpClassifier;
 		var best1 = 0, best2 = 0;
 		var TP = 0, FN = 0, FP = 0, TN = 0;
 
@@ -77,29 +76,28 @@ csv.fromPath('data/pima-diabetes.csv')
 			for (var j = 0; j < numOfTraining; j++) {
 				// if (l % 10 === 0 && j % 100 === 0) console.log('\tTraining no. ' + j);
 
-				var clusters = figue.fcmeans(2, dataArray.slice(0, 768 - 230), 0.00000000001, 1.25) ;
 				var count = 0, tempTP = 0, tempFN = 0, tempFP = 0, tempTN = 0;
 
+				var mlpClassifier = new ml.MLP({
+					input: dataArray.slice(0, 768 - 230),
+					label: labelArray.slice(0, 768 - 230),
+					n_ins: numOfFeatures,
+					n_outs: 2,
+					hidden_layer_sizes: [4, 4, 5]
+				});
+				mlpClassifier.set('log level', 0);  // 0 : nothing, 1 : info, 2 : warning.
+				mlpClassifier.train({ lr : 0.01, epochs : 20000 });
+
 				for (let i = 768 - 230; i < 768; i++) {
-					var dis1 = figue.euclidianDistance(dataArray[i], clusters.centroids[0]);
-					var dis2 = figue.euclidianDistance(dataArray[i], clusters.centroids[1]);
-					if (Number(labelArray[i]) === 0) {
-						if (dis1 > dis2) {
-							count++;
-							tempTN++;
-						} else {
-							tempFP++;
-						}
+					var result = mlpClassifier.predict([dataArray[i]]);
+					if (Number(labelArray[i][0]) > Number(labelArray[i][1])) {
+						if (result[0][0] > result[0][1]) { count++; tempTN++;
+						} else { tempFP++; }
 					} else {
-						if (dis1 < dis2) {
-							count++;
-							tempTP++;
-						} else {
-							tempFN++;
-						}
+						if (result[0][0] < result[0][1]) { count++; tempTP++;
+						} else { tempFN++; }
 					}
 				}
-
 
 				var print = false;
 				if (count < (230 / 2)) {
@@ -128,11 +126,11 @@ csv.fromPath('data/pima-diabetes.csv')
 					}
 				}
 
-				if (print) { finalClusters = clusters; }
+				if (print) { finalMlpClassifier = mlpClassifier; }
 			}
 		}
 
-		fs.writeFile('/fuzzy', JSON.stringify(finalClusters.centroids), function(err) {
+		fs.writeFile('/fuzzy', JSON.stringify(finalMlpClassifier), function(err) {
 			if(err) { return console.log(err); }
 		}); 
 

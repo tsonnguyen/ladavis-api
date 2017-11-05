@@ -1,13 +1,9 @@
 var database = require('./dbSetting');
 var db = database.db ;
-
-var prediction = require('./prediction');
 var predict = require('./predict');
-//var test = require('./test');
-//var test = require('./test2');
-// var classifier = prediction.classifier;
-
 var constant = require('./defines.js');
+
+console.log('RUNNING LADAVIS SERVER...\n');
 
 function getAllPatients(req, res, next) {
 	db.task('get-everything', t => {

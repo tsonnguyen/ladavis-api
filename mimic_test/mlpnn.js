@@ -8,7 +8,7 @@ var dataArray = [];
 var labelArray = [];
 var numOfFeatures = Number(process.argv[2]);
 
-console.log('running');
+console.log('MLPNN MIMIC TESTING\n');
 
 csv.fromPath('data/new-mimic-test.csv')
 	.on('data', function (csvRow) {
