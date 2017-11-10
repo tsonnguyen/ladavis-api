@@ -9,28 +9,94 @@ function getAllPatients(req, res, next) {
 	db.task('get-everything', t => {
 		return t.batch([
 			t.any('select p.subject_id as id, p.gender, p.dob, da.diagnosis '
-					+ 'from patients p join diabete_admissions da on p.subject_id = da.subject_id'),
+				+ 'from patients p join diabete_admissions da on p.subject_id = da.subject_id'),
 			t.any('select subject_id as id, itemid, value, charttime from labevents '
-					+ 'where subject_id in (select subject_id from diabete_admissions) '
-					+ 'and itemid = $1 '
-					+ 'order by subject_id, charttime asc', constant.hemoA1c)
+				+ 'where subject_id in (select subject_id from diabete_admissions) '
+				+ 'and itemid in ($1, $2, $3, $4, $5, $6, $7) '
+				+ 'order by subject_id, charttime asc'
+				, [constant.glucoseBlood, constant.glucoseUrine
+				, constant.creatinine, constant.albumin, constant.hemoA1c
+				, constant.choles, constant.trigly]),
+			t.any('select subject_id as id, itemid, value, charttime ' 
+				+ 'from chartevents '
+				+ 'where subject_id in (select subject_id from diabete_admissions) ' 
+				+ 'and itemid in ($1, $2) '
+				+ 'order by subject_id, charttime asc'
+				, [constant.NBPsystolic, constant.NBPdiastolic]),
 		]);
 	}).then(data => {
 		var listPatients = data[0];
 		var listLabitems = data[1];
+		var listChartitems = data[2];
+
+		var shiftYear = 87;
 
 		for (let i = 0; i < listPatients.length; i++) {
+			listPatients[i].dob = (new Date()).getFullYear() - (new Date(listPatients[i].dob)).getFullYear() + shiftYear;
+
+			if (listPatients[i].dob > 100) {
+				listPatients[i].dob = listPatients[i].dob - 30;
+			} else if (listPatients[i].dob > 70) {
+				listPatients[i].dob = listPatients[i].dob - 20;
+			} else if (listPatients[i].dob < 10) {
+				listPatients[i].dob = listPatients[i].dob + 30;
+			}
+			
+			listPatients[i].glucoseBlood = [];
+			listPatients[i].glucoseUrine = [];
+			listPatients[i].creatinine = [];
+			listPatients[i].albumin = [];
+			listPatients[i].hemoA1c = [];
+			listPatients[i].choles = [];
+			listPatients[i].trigly = [];
+
 			for (let j = 0; j < listLabitems.length; j++) {
 				if (listPatients[i].id < listLabitems[j].id) break;
 				else if (listPatients[i].id === listLabitems[j].id) {
-					if (listPatients[i].hemoA1c == null) listPatients[i].hemoA1c = [];
-					listPatients[i].hemoA1c.push({
-						time: listLabitems[j].charttime,
-						value: listLabitems[j].value
-					});
+					switch (listLabitems[j].itemid) {
+					case (constant.glucoseBlood):
+						listPatients[i].glucoseBlood.push({time: listLabitems[j].charttime, value: listLabitems[j].value});
+						break;
+					case (constant.glucoseUrine):
+						listPatients[i].glucoseUrine.push({time: listLabitems[j].charttime, value: listLabitems[j].value});
+						break;
+					case (constant.creatinine):
+						listPatients[i].creatinine.push({time: listLabitems[j].charttime, value: listLabitems[j].value});
+						break;
+					case (constant.albumin):
+						listPatients[i].albumin.push({time: listLabitems[j].charttime, value: listLabitems[j].value});
+						break;
+					case (constant.hemoA1c):
+						listPatients[i].hemoA1c.push({time: listLabitems[j].charttime, value: listLabitems[j].value});
+						break;
+					case (constant.choles):
+						listPatients[i].choles.push({time: listLabitems[j].charttime, value: listLabitems[j].value});
+						break;
+					case (constant.trigly):
+						listPatients[i].trigly.push({time: listLabitems[j].charttime, value: listLabitems[j].value});
+						break;
+					}
+				}
+			}
+
+			listPatients[i].systolic = [];
+			listPatients[i].diastolic = [];
+
+			for (let j = 0; j < listChartitems.length; j++) {
+				if (listPatients[i].id < listChartitems[j].id) break;
+				else if (listPatients[i].id === listChartitems[j].id) {
+					switch (listChartitems[j].itemid) {
+					case (constant.NBPsystolic):
+						listPatients[i].systolic.push({time: listChartitems[j].charttime, value: listChartitems[j].value});
+						break;
+					case (constant.glucoseUrine):
+						listPatients[i].diastolic.push({time: listChartitems[j].charttime, value: listChartitems[j].value});
+						break;
+					}
 				}
 			}
 		}
+		
 
 		res.status(200)
 			.json({
