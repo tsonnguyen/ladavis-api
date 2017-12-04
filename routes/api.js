@@ -23,23 +23,32 @@ function getAllPatients(req, res, next) {
 				+ 'and itemid in ($1, $2) '
 				+ 'order by subject_id, charttime asc'
 				, [constant.NBPsystolic, constant.NBPdiastolic]),
+			t.any('select subject_id as id, admittime, dischtime, deathtime ' 
+				+ 'from admissions '
+				+ 'where subject_id in (select subject_id from diabete_admissions) '
+				+ 'order by subject_id asc')	
 		]);
 	}).then(data => {
 		var listPatients = data[0];
 		var listLabitems = data[1];
 		var listChartitems = data[2];
+		var listAdminssionItems = data[3];
 
 		var shiftYear = 87;
 
 		for (let i = 0; i < listPatients.length; i++) {
-			listPatients[i].dob = (new Date()).getFullYear() - (new Date(listPatients[i].dob)).getFullYear() + shiftYear;
+			listPatients[i].age = (new Date()).getFullYear() - (new Date(listPatients[i].dob)).getFullYear() + shiftYear;
 
-			if (listPatients[i].dob > 100) {
-				listPatients[i].dob = listPatients[i].dob - 30;
-			} else if (listPatients[i].dob > 70) {
-				listPatients[i].dob = listPatients[i].dob - 20;
-			} else if (listPatients[i].dob < 10) {
-				listPatients[i].dob = listPatients[i].dob + 30;
+			if (listPatients[i].age > 100) {
+				listPatients[i].age = listPatients[i].age - 30;
+			} else if (listPatients[i].age > 70) {
+				listPatients[i].age = listPatients[i].age - 20;
+			} else if (listPatients[i].age < 10) {
+				listPatients[i].age = listPatients[i].age + 30;
+			}
+
+			if (listPatients[i].age < 20) {
+				listPatients[i].age += 30;
 			}
 			
 			listPatients[i].glucoseBlood = [];
@@ -93,6 +102,15 @@ function getAllPatients(req, res, next) {
 						listPatients[i].diastolic.push({time: listChartitems[j].charttime, value: listChartitems[j].value});
 						break;
 					}
+				}
+			}
+
+			for (let j = 0; j < listAdminssionItems.length; j++) {
+				if (listPatients[i].id < listAdminssionItems[j].id) break;
+				else if (listPatients[i].id === listAdminssionItems[j].id) {
+					listPatients[i].admittime = listAdminssionItems[j].admittime;
+					listPatients[i].dischtime = listAdminssionItems[j].dischtime;
+					listPatients[i].deathtime = listAdminssionItems[j].deathtime;
 				}
 			}
 		}
